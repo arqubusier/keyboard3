@@ -30,8 +30,34 @@ void sendKey(byte key, byte modifiers = 0);
 int enable = 9;
 
 
+// Currently in pins correspond to rows
 int in_pins[] {4, 5};
+// Currently out pins correspond to columns
 int out_pins[]  {10, 16};
+
+enum struct KeyState {UP, DOWN};
+
+struct KeyStatus{
+  KeyState state;
+  unsigned long change_time;
+  uint8_t report_key_i;
+};
+
+union KeySym{
+  byte key;
+  byte mod;
+};
+
+KeyStatus status_table[dim(in_pins)][dim(out_pins)];
+const size_t layers = 1;
+KeySym symbol_table[layers][dim(in_pins)][dim(out_pins)] =
+  {
+   {
+    {KEY_SW_A, KEY_SW_B},
+    {KEY_SW_C, KEY_SW_D}
+   },
+  };
+
 void setup()
 {
   for (size_t out_i = 0; out_i < dim(out_pins); out_i++){
@@ -49,6 +75,12 @@ void setup()
   //Enable pin
   pinMode(enable, INPUT);
   digitalWrite(enable, HIGH);
+
+  for (size_t in_i = 0; in_i < dim(in_pins); in_i++){
+    for (size_t out_i = 0; out_i < dim(out_pins); out_i++){
+      status_table[in_i][out_i] = {KeyState::UP, 0, 0};
+    }
+  }
 
   Serial.begin(9600);
 }
@@ -73,8 +105,6 @@ void loop()
       if (digitalRead(in_pin) == LOW){
         sendKey(KEY_SW_A, 0);
       }
-      pin_status(in_pins);
-      pin_status(out_pins);
       delay(1000);  // Delay so as not to spam the computer
     }
   }
