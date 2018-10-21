@@ -22,11 +22,12 @@ void setup()
 
 void loop()
 {
-  if (digitalRead(buttonPin) == 0)  // if the button goes low
+  if (digitalRead(buttonPin))  //  Only continue when enable pin is low
   {
-    sendKey(KEY_SW_A, 1 << MODIFIER_LSHIFT);  // send a SHIFT+a to the computer via Keyboard HID
-    delay(1000);  // Delay so as not to spam the computer
+    return;
   }
+  sendKey(KEY_SW_A, 1 << MODIFIER_LSHIFT);  // send a SHIFT+a to the computer via Keyboard HID
+  delay(1000);  // Delay so as not to spam the computer
 }
 
 void sendKey(byte key, byte modifiers)
