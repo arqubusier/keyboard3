@@ -18,16 +18,21 @@
 #include <Keyboard.h>
 #include "key_codes.h"
 
-
+enum struct KeyType {KEY, MOD, FUN, NONE};
 enum struct KeyState {UP=HIGH, DOWN=LOW};
+
+union KeyIndex{
+  uint8_t report_key;
+  uint8_t mod_bit;
+};
 
 struct KeyStatus{
   KeyState state;
   unsigned long last_change;
-  uint8_t report_key_i;
+  KeyType pressed_type;
+  KeyIndex index;
 };
 
-enum struct KeyType {KEY, MOD, FUN};
 
 union KeyVal{
   byte key;
@@ -37,12 +42,6 @@ union KeyVal{
 struct KeySym{
   KeyType type;
   KeyVal val;
-
-  /*
-    KeySym(byte val): type(KeyType::KEY){
-    this->val.key=val;
-    }
-  */
 };
 
 
@@ -112,7 +111,7 @@ void setup()
 
   for (size_t in_i = 0; in_i < dim(in_pins); in_i++){
     for (size_t out_i = 0; out_i < dim(out_pins); out_i++){
-      status_table[in_i][out_i] = {KeyState::UP, 0, KEY_REPORT_DONT_CLEAR_KEY};
+      status_table[in_i][out_i] = {KeyState::UP, 0, KeyType::NONE, 0};
     }
   }
 
@@ -159,7 +158,7 @@ void loop()
             switch (key_sym.type){
             case KeyType::KEY:
               report.keys[key_i] = key_sym.val.key;
-              status.report_key_i = key_i;
+              status.index.report_key = key_i;
               break;
             case KeyType::MOD:
               break;
@@ -169,6 +168,7 @@ void loop()
               ;//SHOULD ONLY HAPPEN WITH INVALID SYMBOL_TABLE
             }
 
+            status.pressed_type = key_sym.type;
             status.last_change = time_now;
             status.state = KeyState::DOWN;
             has_keys_changed = true;
@@ -181,18 +181,22 @@ void loop()
       }
       else if (status.state == KeyState::DOWN && new_state == KeyState::UP){
         Serial.println("Key DOWN -> UP");
-        size_t clear_key_i = status.report_key_i;
-        if ( clear_key_i < dim(report.keys)){
-          report.keys[clear_key_i] = KEY_REPORT_KEY_AVAILABLE;
-          status.last_change = time_now;
-          has_keys_changed = true;
-          status.state = KeyState::UP;
+        uint8_t clear_index;
+        switch (status.pressed_type){
+        case KeyType::KEY:
+          clear_index = status.index.report_key;
+          // assert( clear_key_i < dim(report.keys))
+          report.keys[clear_index] = KEY_REPORT_KEY_AVAILABLE;
+          break;
+        case KeyType::MOD:
+          break;
+        default:;
+        }
+        status.last_change = time_now;
+        has_keys_changed = true;
+        status.state = KeyState::UP;
 
-          DEBUGV(status.report_key_i);
-        }
-        else{
-          //SHOULD NOT HAPPEN => ERROR IN CODE
-        }
+        DEBUGV(status.index.report_key);
       }
     }
     delay(100);  // Delay so as not to spam the computer
