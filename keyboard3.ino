@@ -65,7 +65,7 @@ KeySym symbol_table[layers][dim(in_pins)][dim(out_pins)] =
   {
    {
     {KeySym(KEY_SW_A), KeySym(KEY_SW_B)},
-    {KeySym(KEY_SW_B), KeySym(KEY_SW_C)},
+    {KeySym(KEY_SW_C), KeySym(KEY_SW_D)},
    },
   };
 
@@ -76,6 +76,10 @@ size_t layer = 0;
 
 void setup()
 {
+  for (size_t i = 0; i < dim(report.keys); i++){
+    report.keys[i] = KEY_REPORT_KEY_AVAILABLE;
+  }
+
   for (size_t out_i = 0; out_i < dim(out_pins); out_i++){
     int out_pin = out_pins[out_i];
     pinMode(out_pin, OUTPUT);
@@ -101,11 +105,6 @@ void setup()
   Serial.begin(9600);
 }
 
-bool key_ready(KeyStatus status){
-  unsigned long time_now = millis();
-  return ( (time_now - status.last_change) > debounce_ms );
-}
-
 #define DEBUGV(var) Serial.print(#var); Serial.print(var); Serial.println("")
 void loop()
 {
@@ -127,15 +126,17 @@ void loop()
     for (size_t in_i = 0; in_i < dim(in_pins); in_i++){
       int in_pin = in_pins[in_i];
       int in_val = digitalRead(in_pin);
-      KeyStatus status = status_table[in_i][out_i];
+      KeyStatus &status = status_table[in_i][out_i];
+
+      if (status.state == in_val)
+        continue;
+
+      unsigned long time_now = millis();
+      if ( (time_now - status.last_change) < debounce_ms )
+        continue;
 
       if (status.state == KEY_STATE_UP && in_val == KEY_STATE_DOWN){
-        unsigned long time_now = millis();
-        if ( (time_now - status.last_change) < debounce_ms )
-          continue;
-
         Serial.println("Key UP -> DOWN");
-        if ( !key_ready(status) )
         //set key in keyreport
         for (size_t key_i = 0; key_i < dim(report.keys); key_i++){
           if (report.keys[key_i] == KEY_REPORT_KEY_AVAILABLE){
@@ -145,19 +146,16 @@ void loop()
               status.report_key_i = key_i;
             }
             status.last_change = time_now;
-            has_keys_changed = true;
             status.state = KEY_STATE_DOWN;
+            has_keys_changed = true;
 
             DEBUGV(key_i);
             DEBUGV(key_sym.val.key);
+            break;
           }
         }
       }
       else if (status.state == KEY_STATE_DOWN && in_val == KEY_STATE_UP){
-        unsigned long time_now = millis();
-        if ( (time_now - status.last_change) < debounce_ms )
-          continue;
-
         Serial.println("Key DOWN -> UP");
         size_t clear_key_i = status.report_key_i;
         if ( clear_key_i < dim(report.keys)){
