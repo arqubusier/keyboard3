@@ -8,8 +8,9 @@
 
 #include <HID.h>
 #include <Keyboard.h>
+#include "../key_codes.h"
 //#define KEY_LEFT_SHIFT 0x81
-#define KEY_A 0x04
+//#define KEY_SW_A 0x04
 void sendKey(byte key, byte modifiers = 0);
 int buttonPin = 9;  // Set a button to digital pin 9
 
@@ -23,7 +24,7 @@ void loop()
 {
   if (digitalRead(buttonPin) == 0)  // if the button goes low
   {
-    sendKey(KEY_A, KEY_LEFT_SHIFT);  // send a SHIFT+a to the computer via Keyboard HID
+    sendKey(KEY_SW_A, 1 << MODIFIER_LSHIFT);  // send a SHIFT+a to the computer via Keyboard HID
     delay(1000);  // Delay so as not to spam the computer
   }
 }
