@@ -23,7 +23,7 @@ enum struct KeyState {UP=HIGH, DOWN=LOW};
 
 union KeyIndex{
   uint8_t report_key;
-  uint8_t mod_bit;
+  uint8_t mod_mask;
 };
 
 struct KeyStatus{
@@ -78,11 +78,12 @@ const uint8_t KEY_REPORT_DONT_CLEAR_KEY = 255;
 KeyStatus status_table[dim(in_pins)][dim(out_pins)];
 const size_t layers = 1;
 size_t layer = 0;
+//NOTE: for keymaps with duplicate keys, duplicate key reports may be sent.
 KeySym symbol_table[layers][dim(in_pins)][dim(out_pins)] =
   {
    {
-    {{KeyType::KEY, KEY_SW_A}, {KeyType::KEY, KEY_SW_B}},
-    {{KeyType::KEY, KEY_SW_C}, {KeyType::KEY, KEY_SW_D}},
+    {{KeyType::MOD, MOD_LSHIFT}, {KeyType::MOD, MOD_LCTRL}},
+    {{KeyType::KEY, KEY_SW_C},   {KeyType::KEY, KEY_SW_D}},
    },
   };
 
@@ -119,6 +120,75 @@ void setup()
 }
 
 #define DEBUGV(var) Serial.print(#var); Serial.print(var); Serial.println("")
+
+bool key_down(KeySym key_sym, KeyStatus& status){
+  for (size_t key_i = 0; key_i < dim(report.keys); key_i++){
+    if (report.keys[key_i] == KEY_REPORT_KEY_AVAILABLE){
+      report.keys[key_i] = key_sym.val.key;
+      status.index.report_key = key_i;
+      status.pressed_type = key_sym.type;
+      DEBUGV(key_i);
+      DEBUGV(key_sym.val.key);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool handle_up2down(KeySym key_sym, KeyStatus& status, unsigned long time_now){
+  bool update_key = false;
+  Serial.println("Key UP -> DOWN");
+  switch (key_sym.type){
+  case KeyType::KEY:
+    update_key = key_down(key_sym, status);
+    break;
+  case KeyType::MOD:
+    report.modifiers |= key_sym.val.mod;
+    status.index.mod_mask = key_sym.val.mod;
+    status.pressed_type = KeyType::MOD;
+    DEBUGV(report.modifiers);
+    update_key = true;
+    break;
+  case KeyType::FUN:
+    break;
+  default:
+    ;//SHOULD ONLY HAPPEN WITH INVALID SYMBOL_TABLE
+  }
+
+  if (update_key){
+    status.last_change = time_now;
+    status.state = KeyState::DOWN;
+  }
+  return update_key;
+}
+
+bool handle_down2up(KeyStatus& status, unsigned long time_now){
+  Serial.println("Key DOWN -> UP");
+  uint8_t clear_index;
+  switch (status.pressed_type){
+  case KeyType::KEY:
+    clear_index = status.index.report_key;
+    // assert( clear_key_i < dim(report.keys))
+    report.keys[clear_index] = KEY_REPORT_KEY_AVAILABLE;
+    DEBUGV(status.index.report_key);
+    break;
+  case KeyType::MOD:
+    report.modifiers &= ~(status.index.mod_mask);
+    DEBUGV(status.index.mod_mask);
+    DEBUGV(~status.index.mod_mask);
+    DEBUGV(report.modifiers);
+    break;
+  default:;
+  }
+  status.last_change = time_now;
+  status.state = KeyState::UP;
+
+  return true;
+}
+
+
+
+//TODO: merge status.state and pressed type?
 void loop()
 {
 
@@ -150,53 +220,13 @@ void loop()
         continue;
 
       if (status.state == KeyState::UP && new_state == KeyState::DOWN){
-        Serial.println("Key UP -> DOWN");
-        //set key in keyreport
-        for (size_t key_i = 0; key_i < dim(report.keys); key_i++){
-          if (report.keys[key_i] == KEY_REPORT_KEY_AVAILABLE){
-            KeySym key_sym = symbol_table[layer][in_i][out_i];
-            switch (key_sym.type){
-            case KeyType::KEY:
-              report.keys[key_i] = key_sym.val.key;
-              status.index.report_key = key_i;
-              break;
-            case KeyType::MOD:
-              break;
-            case KeyType::FUN:
-              break;
-            default:
-              ;//SHOULD ONLY HAPPEN WITH INVALID SYMBOL_TABLE
-            }
-
-            status.pressed_type = key_sym.type;
-            status.last_change = time_now;
-            status.state = KeyState::DOWN;
-            has_keys_changed = true;
-
-            DEBUGV(key_i);
-            DEBUGV(key_sym.val.key);
-            break;
-          }
-        }
+        KeySym key_sym = symbol_table[layer][in_i][out_i];
+        has_keys_changed = has_keys_changed
+          || handle_up2down(key_sym, status, time_now);
       }
       else if (status.state == KeyState::DOWN && new_state == KeyState::UP){
-        Serial.println("Key DOWN -> UP");
-        uint8_t clear_index;
-        switch (status.pressed_type){
-        case KeyType::KEY:
-          clear_index = status.index.report_key;
-          // assert( clear_key_i < dim(report.keys))
-          report.keys[clear_index] = KEY_REPORT_KEY_AVAILABLE;
-          break;
-        case KeyType::MOD:
-          break;
-        default:;
-        }
-        status.last_change = time_now;
-        has_keys_changed = true;
-        status.state = KeyState::UP;
-
-        DEBUGV(status.index.report_key);
+        has_keys_changed = has_keys_changed
+          || handle_down2up(status, time_now);
       }
     }
     delay(100);  // Delay so as not to spam the computer

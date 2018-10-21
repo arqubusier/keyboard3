@@ -156,17 +156,17 @@
  * /
  */
 
-#define N_MODIFIERS 8
-#define MODIFIER_NONE -1
-#define MODIFIER_LCTRL 0
-#define MODIFIER_LSHIFT 1
-#define MODIFIER_LALT 2
-#define MODIFIER_LGUI 3
-#define MODIFIER_RCTRL 4
-#define MODIFIER_RSHIFT 5
-#define MODIFIER_RALT 6
-#define MODIFIER_ALTGR 6
-#define MODIFIER_RGUI 7
+// 0 0 0 0|0 0 0 0
+//               
+#define MOD_EMPTY  0x00
+#define MOD_LCTRL  0x01
+#define MOD_LSHIFT 0x02
+#define MOD_LALT   0x04
+#define MOD_LGUI   0x08
+#define MOD_RCTRL  0x10
+#define MOD_RSHIFT 0x20
+#define MOD_RALT   0x40
+#define MOD_RGUI   0x80
 
 #define KEY_LAYER1 256
 #define KEY_LAYER2 257
