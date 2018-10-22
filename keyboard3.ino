@@ -132,20 +132,20 @@ void sendKey(byte key, byte modifiers = 0);
 KeyReport report = {0};
 
 // enable pin for main loop, active low.
-int enable = 9;
+const int ENABLE_PIN = 9;
 // Currently in pins correspond to rows
-int in_pins[] {4, 5};
+const int IN_PINS[] {4, 5};
 // Currently out pins correspond to columns
-int out_pins[]  {10, 16};
+const int OUT_PINS[]  {10, 16};
 
-unsigned long debounce_ms = 5;
+const unsigned long DEBOUNCE_MS = 5;
 const uint8_t KEY_REPORT_DONT_CLEAR_KEY = 255;
 
-KeyStatus status_table[dim(in_pins)][dim(out_pins)];
-const size_t layers = 1;
+const size_t LAYERS = 1;
 size_t layer = 0;
+KeyStatus status_table[dim(IN_PINS)][dim(OUT_PINS)];
 //NOTE: for keymaps with duplicate keys, duplicate key reports may be sent.
-KeySym symbol_table[layers][dim(in_pins)][dim(out_pins)] =
+const KeySym SYMBOL_TABLE[LAYERS][dim(IN_PINS)][dim(OUT_PINS)] =
   {
    {
     {{KeyState::MOD_DOWN, MOD_LSHIFT}, {KeyState::MOD_DOWN, MOD_LCTRL}},
@@ -160,24 +160,23 @@ void setup()
     report.keys[i] = KEY_REPORT_KEY_AVAILABLE;
   }
 
-  for (size_t out_i = 0; out_i < dim(out_pins); out_i++){
-    int out_pin = out_pins[out_i];
+  for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
+    int out_pin = OUT_PINS[out_i];
     pinMode(out_pin, OUTPUT);
     digitalWrite(out_pin, HIGH);
   }
 
-  for (size_t in_i = 0; in_i < dim(in_pins); in_i++){
-    int in_pin = in_pins[in_i];
+  for (size_t in_i = 0; in_i < dim(IN_PINS); in_i++){
+    int in_pin = IN_PINS[in_i];
     pinMode(in_pin, INPUT);
     digitalWrite(in_pin, HIGH);
   }
 
-  //Enable pin
-  pinMode(enable, INPUT);
-  digitalWrite(enable, HIGH);
+  pinMode(ENABLE_PIN, INPUT);
+  digitalWrite(ENABLE_PIN, HIGH);
 
-  for (size_t in_i = 0; in_i < dim(in_pins); in_i++){
-    for (size_t out_i = 0; out_i < dim(out_pins); out_i++){
+  for (size_t in_i = 0; in_i < dim(IN_PINS); in_i++){
+    for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
       status_table[in_i][out_i] = {KeyState::UP, 0, 0};
     }
   }
@@ -191,21 +190,19 @@ void loop()
 {
 
   //  Only continue when enable pin is low
-  if (digitalRead(enable))
-  {
+  if (digitalRead(ENABLE_PIN))
     return;
-  }
 
   bool has_keys_changed = false;
-  for (size_t out_i = 0; out_i < dim(out_pins); out_i++){
-    int out_pin = out_pins[out_i];
-    size_t prev_out_i = (out_i + dim(out_pins) - 1 ) % dim(out_pins);
-    int prev_out_pin = out_pins[prev_out_i];
+  for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
+    int out_pin = OUT_PINS[out_i];
+    size_t prev_out_i = (out_i + dim(OUT_PINS) - 1 ) % dim(OUT_PINS);
+    int prev_out_pin = OUT_PINS[prev_out_i];
     digitalWrite(prev_out_pin, HIGH);
     digitalWrite(out_pin, LOW);
 
-    for (size_t in_i = 0; in_i < dim(in_pins); in_i++){
-      int in_pin = in_pins[in_i];
+    for (size_t in_i = 0; in_i < dim(IN_PINS); in_i++){
+      int in_pin = IN_PINS[in_i];
       int in_val = digitalRead(in_pin);
       KeyStatus &status = status_table[in_i][out_i];
       KeyInValue read_val = static_cast<KeyInValue>(in_val);
@@ -214,11 +211,11 @@ void loop()
         continue;
 
       unsigned long time_now = millis();
-      if ( (time_now - status.last_change) < debounce_ms )
+      if ( (time_now - status.last_change) < DEBOUNCE_MS )
         continue;
 
       if (status.isUp() && read_val == KeyInValue::DOWN){
-        KeySym key_sym = symbol_table[layer][in_i][out_i];
+        KeySym key_sym = SYMBOL_TABLE[layer][in_i][out_i];
         status.up2down(key_sym, time_now, report);
         if (status.isUp())
           has_keys_changed = true;
