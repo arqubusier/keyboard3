@@ -40,11 +40,20 @@ enum struct KeyState {KEY_DOWN, MOD_DOWN, FUN_DOWN, UP};
 union KeyIndex{
   uint8_t report_key;
   uint8_t mod_mask;
+  uint8_t fun_val;
 };
+
+const uint8_t FUN_PREFIX_MASK = 0xC0;
+const uint8_t FUN_SUB_MASK = 0x3F;
+const uint8_t FUN_LAYER=0x00;
+const uint8_t FUN_LAYER_OFFSET=0x04;
+const uint8_t FUN_MACRO=0x80;
+const uint8_t FUN_OTHER=0xC0;
 
 union KeyVal{
   byte key;
   byte mod;
+  byte fun;
 };
 
 struct KeySym{
@@ -79,30 +88,73 @@ struct KeyStatus{
     this->state = KeyState::UP;
   }
 
-  void up2down(KeySym key_sym, unsigned long time_up, KeyReport &report){
+  void fun_down(byte fun_val, uint8_t &layer){
+    auto fun_content = fun_val & FUN_SUB_MASK;
+    index.fun_val = fun_content;
+    switch (FUN_PREFIX_MASK & fun_val){
+    case FUN_LAYER:
+      layer = fun_content;
+      break;
+    case FUN_LAYER_OFFSET:
+      break;
+    case FUN_MACRO:
+      break;
+    case FUN_OTHER:
+      break;
+    default:
+      ;
+    }
+    this->state = KeyState::FUN_DOWN;
+  }
+
+  void fun_up(uint8_t &layer){
+    switch (FUN_PREFIX_MASK & index.fun_val){
+    case FUN_LAYER:
+      index.fun_val = 0;
+      layer = 0;
+      break;
+    case FUN_LAYER_OFFSET:
+      break;
+    case FUN_MACRO:
+      break;
+    case FUN_OTHER:
+      break;
+    default:
+      ;
+    }
+    this->state = KeyState::FUN_DOWN;
+  }
+
+  bool up2down(KeySym key_sym, unsigned long time_up, KeyReport &report, uint8_t &layer){
     Serial.println("Key UP -> DOWN");
     switch (key_sym.effect){
     case KeyState::KEY_DOWN:
       key_down(key_sym, report);
-      return;
+      break;
     case KeyState::MOD_DOWN:
       report.modifiers |= key_sym.val.mod;
       this->index.mod_mask = key_sym.val.mod;
       this->state = key_sym.effect;
       DEBUGV(report.modifiers);
-      return;
+      break;
     case KeyState::FUN_DOWN:
-      this->state = key_sym.effect;
-      return;
+      fun_down(key_sym.val.fun, layer);
+      DEBUGV(key_sym.val.fun);
+      DEBUGV(layer);
+      break;
     default:
       this->state = KeyState::UP;
     }
 
-    if (state != KeyState::UP)
+    if (state != KeyState::UP){
       last_change = time_up;
+      if (state != KeyState::FUN_DOWN)
+        return true;
+    }
+    return false;
   }
 
-  void down2up(unsigned long time_down, KeyReport &report){
+  bool down2up(unsigned long time_down, KeyReport &report, uint8_t &layer){
     Serial.println("Key DOWN -> UP");
     uint8_t clear_index;
     switch (state){
@@ -118,11 +170,17 @@ struct KeyStatus{
       DEBUGV(~index.mod_mask);
       DEBUGV(report.modifiers);
       break;
+    case KeyState::FUN_DOWN:
+      fun_up(layer);
+      DEBUGV(layer);
     default:
       ;
     }
+
+    bool notify_key_change = (state != KeyState::FUN_DOWN);
     state = KeyState::UP;
     last_change = time_down;
+    return notify_key_change;
   }
 };
 
@@ -141,16 +199,38 @@ const int OUT_PINS[]  {10, 16};
 const unsigned long DEBOUNCE_MS = 5;
 const uint8_t KEY_REPORT_DONT_CLEAR_KEY = 255;
 
-const size_t LAYERS = 1;
-size_t layer = 0;
+const size_t LAYERS = 64;
+uint8_t layer = 0;
 KeyStatus status_table[dim(IN_PINS)][dim(OUT_PINS)];
 //NOTE: for keymaps with duplicate keys, duplicate key reports may be sent.
+#define EMPTY_ROW { {{KeyState::UP, 0}, {KeyState::UP, 0}}, {{KeyState::UP, 0}, {KeyState::UP, 0}} }
 const KeySym SYMBOL_TABLE[LAYERS][dim(IN_PINS)][dim(OUT_PINS)] =
   {
    {
-    {{KeyState::MOD_DOWN, MOD_LSHIFT}, {KeyState::MOD_DOWN, MOD_LCTRL}},
+    {{KeyState::MOD_DOWN, MOD_LSHIFT}, {KeyState::FUN_DOWN, 0x01}},
     {{KeyState::KEY_DOWN, KEY_SW_C},   {KeyState::KEY_DOWN, KEY_SW_D}},
    },
+   {
+    {{KeyState::MOD_DOWN, KEY_SW_A},           {KeyState::MOD_DOWN, MOD_LCTRL}},
+    {{KeyState::FUN_DOWN, 0x02},   {KeyState::KEY_DOWN, KEY_SW_D}},
+   },
+   {
+    {{KeyState::MOD_DOWN, KEY_SW_F}, {KeyState::MOD_DOWN, MOD_LCTRL}},
+    {{KeyState::KEY_DOWN, KEY_SW_C}, {KeyState::KEY_DOWN, KEY_SW_D}},
+   },
+   EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
   };
 
 
@@ -193,7 +273,7 @@ void loop()
   if (digitalRead(ENABLE_PIN))
     return;
 
-  bool has_keys_changed = false;
+  bool notify_key_change = false;
   for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
     int out_pin = OUT_PINS[out_i];
     size_t prev_out_i = (out_i + dim(OUT_PINS) - 1 ) % dim(OUT_PINS);
@@ -204,31 +284,30 @@ void loop()
     for (size_t in_i = 0; in_i < dim(IN_PINS); in_i++){
       int in_pin = IN_PINS[in_i];
       int in_val = digitalRead(in_pin);
-      KeyStatus &status = status_table[in_i][out_i];
+      KeyStatus &key_status = status_table[in_i][out_i];
       KeyInValue read_val = static_cast<KeyInValue>(in_val);
 
-      if (status.no_change(read_val))
+      if (key_status.no_change(read_val))
         continue;
 
       unsigned long time_now = millis();
-      if ( (time_now - status.last_change) < DEBOUNCE_MS )
+      if ( (time_now - key_status.last_change) < DEBOUNCE_MS )
         continue;
 
-      if (status.isUp() && read_val == KeyInValue::DOWN){
+      if (key_status.isUp() && read_val == KeyInValue::DOWN){
         KeySym key_sym = SYMBOL_TABLE[layer][in_i][out_i];
-        status.up2down(key_sym, time_now, report);
-        if (status.isUp())
-          has_keys_changed = true;
+        if (key_status.up2down(key_sym, time_now, report, layer))
+          notify_key_change = true;
       }
-      else if (status.isDown() && read_val == KeyInValue::UP){
-        status.down2up(time_now, report);
-        has_keys_changed = true;
+      else if (key_status.isDown() && read_val == KeyInValue::UP){
+        if (key_status.down2up(time_now, report, layer))
+          notify_key_change = true;
       }
     }
     delay(100);  // Delay so as not to spam the computer
   }
 
-  if (has_keys_changed){
+  if (notify_key_change){
     Serial.println("Send Key Report");
     // Send key report
   }
