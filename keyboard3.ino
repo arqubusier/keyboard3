@@ -18,32 +18,7 @@
 #include <Keyboard.h>
 #include "key_codes.h"
 
-enum struct KeyType {KEY, MOD, FUN, NONE};
-enum struct KeyState {UP=HIGH, DOWN=LOW};
-
-union KeyIndex{
-  uint8_t report_key;
-  uint8_t mod_mask;
-};
-
-struct KeyStatus{
-  KeyState state;
-  unsigned long last_change;
-  KeyType pressed_type;
-  KeyIndex index;
-};
-
-
-union KeyVal{
-  byte key;
-  byte mod;
-};
-
-struct KeySym{
-  KeyType type;
-  KeyVal val;
-};
-
+#define DEBUGV(var) Serial.print(#var); Serial.print(var); Serial.println("")
 
 /** Get the size of a fixed size array in compile-time */
 template <typename T, size_t N>
@@ -59,11 +34,102 @@ void print_array(T(& arr)[N])
   Serial.println("");
 }
 
+const uint8_t KEY_REPORT_KEY_AVAILABLE = 0;
+enum struct KeyInValue {UP=HIGH, DOWN=LOW};
+enum struct KeyState {KEY_DOWN, MOD_DOWN, FUN_DOWN, UP};
+union KeyIndex{
+  uint8_t report_key;
+  uint8_t mod_mask;
+};
+
+union KeyVal{
+  byte key;
+  byte mod;
+};
+
+struct KeySym{
+  KeyState effect;
+  KeyVal val;
+};
+
+struct KeyStatus{
+  KeyState state;
+  unsigned long last_change;
+  KeyIndex index;
+
+  bool isUp(){return state == KeyState::UP;}
+  bool isDown(){return state != KeyState::UP;}
+
+  bool no_change(KeyInValue read_val){
+    return ( (isUp() && read_val == KeyInValue::UP)
+             || (isDown() && read_val == KeyInValue::DOWN) );
+  }
+
+  void key_down(KeySym key_sym, KeyReport &report){
+    for (size_t key_i = 0; key_i < dim(report.keys); key_i++){
+      if (report.keys[key_i] == KEY_REPORT_KEY_AVAILABLE){
+        report.keys[key_i] = key_sym.val.key;
+        this->index.report_key = key_i;
+        this->state = key_sym.effect;
+        DEBUGV(key_i);
+        DEBUGV(key_sym.val.key);
+        return;
+      }
+    }
+    this->state = KeyState::UP;
+  }
+
+  void up2down(KeySym key_sym, unsigned long time_up, KeyReport &report){
+    Serial.println("Key UP -> DOWN");
+    switch (key_sym.effect){
+    case KeyState::KEY_DOWN:
+      key_down(key_sym, report);
+      return;
+    case KeyState::MOD_DOWN:
+      report.modifiers |= key_sym.val.mod;
+      this->index.mod_mask = key_sym.val.mod;
+      this->state = key_sym.effect;
+      DEBUGV(report.modifiers);
+      return;
+    case KeyState::FUN_DOWN:
+      this->state = key_sym.effect;
+      return;
+    default:
+      this->state = KeyState::UP;
+    }
+
+    if (state != KeyState::UP)
+      last_change = time_up;
+  }
+
+  void down2up(unsigned long time_down, KeyReport &report){
+    Serial.println("Key DOWN -> UP");
+    uint8_t clear_index;
+    switch (state){
+    case KeyState::KEY_DOWN:
+      clear_index = index.report_key;
+      // assert( clear_key_i < dim(report.keys))
+      report.keys[clear_index] = KEY_REPORT_KEY_AVAILABLE;
+      DEBUGV(index.report_key);
+      break;
+    case KeyState::MOD_DOWN:
+      report.modifiers &= ~(index.mod_mask);
+      DEBUGV(index.mod_mask);
+      DEBUGV(~index.mod_mask);
+      DEBUGV(report.modifiers);
+      break;
+    default:
+      ;
+    }
+    state = KeyState::UP;
+    last_change = time_down;
+  }
+};
+
 void sendKey(byte key, byte modifiers = 0);
 
 // Create an empty KeyReport
 KeyReport report = {0};
-const uint8_t KEY_REPORT_KEY_AVAILABLE = 0;
 
 // enable pin for main loop, active low.
 int enable = 9;
@@ -82,8 +148,8 @@ size_t layer = 0;
 KeySym symbol_table[layers][dim(in_pins)][dim(out_pins)] =
   {
    {
-    {{KeyType::MOD, MOD_LSHIFT}, {KeyType::MOD, MOD_LCTRL}},
-    {{KeyType::KEY, KEY_SW_C},   {KeyType::KEY, KEY_SW_D}},
+    {{KeyState::MOD_DOWN, MOD_LSHIFT}, {KeyState::MOD_DOWN, MOD_LCTRL}},
+    {{KeyState::KEY_DOWN, KEY_SW_C},   {KeyState::KEY_DOWN, KEY_SW_D}},
    },
   };
 
@@ -112,83 +178,15 @@ void setup()
 
   for (size_t in_i = 0; in_i < dim(in_pins); in_i++){
     for (size_t out_i = 0; out_i < dim(out_pins); out_i++){
-      status_table[in_i][out_i] = {KeyState::UP, 0, KeyType::NONE, 0};
+      status_table[in_i][out_i] = {KeyState::UP, 0, 0};
     }
   }
 
   Serial.begin(9600);
 }
 
-#define DEBUGV(var) Serial.print(#var); Serial.print(var); Serial.println("")
-
-bool key_down(KeySym key_sym, KeyStatus& status){
-  for (size_t key_i = 0; key_i < dim(report.keys); key_i++){
-    if (report.keys[key_i] == KEY_REPORT_KEY_AVAILABLE){
-      report.keys[key_i] = key_sym.val.key;
-      status.index.report_key = key_i;
-      status.pressed_type = key_sym.type;
-      DEBUGV(key_i);
-      DEBUGV(key_sym.val.key);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool handle_up2down(KeySym key_sym, KeyStatus& status, unsigned long time_now){
-  bool update_key = false;
-  Serial.println("Key UP -> DOWN");
-  switch (key_sym.type){
-  case KeyType::KEY:
-    update_key = key_down(key_sym, status);
-    break;
-  case KeyType::MOD:
-    report.modifiers |= key_sym.val.mod;
-    status.index.mod_mask = key_sym.val.mod;
-    status.pressed_type = KeyType::MOD;
-    DEBUGV(report.modifiers);
-    update_key = true;
-    break;
-  case KeyType::FUN:
-    break;
-  default:
-    ;//SHOULD ONLY HAPPEN WITH INVALID SYMBOL_TABLE
-  }
-
-  if (update_key){
-    status.last_change = time_now;
-    status.state = KeyState::DOWN;
-  }
-  return update_key;
-}
-
-bool handle_down2up(KeyStatus& status, unsigned long time_now){
-  Serial.println("Key DOWN -> UP");
-  uint8_t clear_index;
-  switch (status.pressed_type){
-  case KeyType::KEY:
-    clear_index = status.index.report_key;
-    // assert( clear_key_i < dim(report.keys))
-    report.keys[clear_index] = KEY_REPORT_KEY_AVAILABLE;
-    DEBUGV(status.index.report_key);
-    break;
-  case KeyType::MOD:
-    report.modifiers &= ~(status.index.mod_mask);
-    DEBUGV(status.index.mod_mask);
-    DEBUGV(~status.index.mod_mask);
-    DEBUGV(report.modifiers);
-    break;
-  default:;
-  }
-  status.last_change = time_now;
-  status.state = KeyState::UP;
-
-  return true;
-}
 
 
-
-//TODO: merge status.state and pressed type?
 void loop()
 {
 
@@ -210,23 +208,24 @@ void loop()
       int in_pin = in_pins[in_i];
       int in_val = digitalRead(in_pin);
       KeyStatus &status = status_table[in_i][out_i];
-      KeyState new_state = static_cast<KeyState>(in_val);
+      KeyInValue read_val = static_cast<KeyInValue>(in_val);
 
-      if (status.state == new_state)
+      if (status.no_change(read_val))
         continue;
 
       unsigned long time_now = millis();
       if ( (time_now - status.last_change) < debounce_ms )
         continue;
 
-      if (status.state == KeyState::UP && new_state == KeyState::DOWN){
+      if (status.isUp() && read_val == KeyInValue::DOWN){
         KeySym key_sym = symbol_table[layer][in_i][out_i];
-        has_keys_changed = has_keys_changed
-          || handle_up2down(key_sym, status, time_now);
+        status.up2down(key_sym, time_now, report);
+        if (status.isUp())
+          has_keys_changed = true;
       }
-      else if (status.state == KeyState::DOWN && new_state == KeyState::UP){
-        has_keys_changed = has_keys_changed
-          || handle_down2up(status, time_now);
+      else if (status.isDown() && read_val == KeyInValue::UP){
+        status.down2up(time_now, report);
+        has_keys_changed = true;
       }
     }
     delay(100);  // Delay so as not to spam the computer
