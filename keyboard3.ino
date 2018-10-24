@@ -41,7 +41,7 @@ enum struct KeyState {KEY_DOWN, MOD_DOWN, FUN_DOWN, UP};
 const uint8_t FUN_PREFIX_MASK = 0xC0;
 const uint8_t FUN_SUB_MASK = 0x3F;
 const uint8_t FUN_LOFFS=0x00;
-const uint8_t FUN_LBASE=0x04;
+const uint8_t FUN_LBASE=0x40;
 const uint8_t FUN_MACRO=0x80;
 const uint8_t FUN_OTHER=0xC0;
 
@@ -215,16 +215,16 @@ KeyStatus status_table[dim(IN_PINS)][dim(OUT_PINS)];
   const KeySym SYMBOL_TABLE[KeyboardState::N_LAYERS][dim(IN_PINS)][dim(OUT_PINS)] =
   {
    {
-    {{M_DN, MOD_LSHIFT}, {F_DN, 0x01}},
+    {{M_DN, MOD_LSHIFT}, {F_DN, F_LO|0x01}},
     {{K_DN, KEY_SW_C  }, {K_DN, KEY_SW_D }},
    },
    {
-    {{K_DN, KEY_SW_A  }, {F_DN, F_LO&0x01}},
-    {{F_DN, 0x02 }, {K_DN, KEY_SW_B }},
+    {{K_DN, KEY_SW_A  }, {F_DN, F_LO|0x01}},
+    {{F_DN, F_LO|0x02 }, {K_DN, KEY_SW_B }},
    },
    {
-    {{M_DN, MOD_LCTRL }, {F_DN, F_LO&0x01}},
-    {{F_DN, F_LO&0x02 }, {K_DN, KEY_SW_E }},
+    {{M_DN, MOD_LCTRL }, {F_DN, F_LO|0x01}},
+    {{F_DN, F_LO|0x02 }, {K_DN, KEY_SW_E }},
    },
    EMPTY_ROW,
    EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
