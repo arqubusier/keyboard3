@@ -93,7 +93,6 @@ struct KeyStatus{
     reset_val = 0;
     switch (FUN_PREFIX_MASK & fun_val){
     case FUN_LOFFS:
-      reset_val = keyboard.layer_offset;
       keyboard.layer_offset = fun_content;
       Serial.println("LayerOffset Down");
       break;
@@ -110,13 +109,10 @@ struct KeyStatus{
   }
 
   void fun_up(KeyboardState &keyboard){
-    uint8_t old_layer=0;
-    auto fun_content = reset_val & FUN_SUB_MASK;
+    reset_val = 0;
     switch (FUN_PREFIX_MASK & reset_val){
     case FUN_LOFFS:
-      old_layer = FUN_SUB_MASK & fun_content;
-      reset_val = 0;
-      keyboard.layer_offset = old_layer;
+      keyboard.layer_offset = 0;
       Serial.println("LayerOffset UP");
       break;
     case FUN_LBASE:
