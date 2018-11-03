@@ -249,6 +249,34 @@ KeyStatus status_table[dim(IN_PINS)][dim(OUT_PINS)];
 #undef F_MO
 #undef F_OT
 
+/**
+ * Check if key is pressed or relasead, and update its status accordingly.
+ *
+ * Returns true if there was a change compared to the key's last status.
+ */
+template<typename SymTableT, typename StatusTableT>
+bool update_key(size_t row, size_t col, SymTableT &SYM_TABLE, StatusTableT &stat_table, KeyInValue read_val){
+  KeyStatus &key_status = stat_table[row][col];
+  if (key_status.no_change(read_val))
+    return false;
+
+  unsigned long time_now = millis();
+  if ( (time_now - key_status.last_change) < DEBOUNCE_MS )
+    return false;
+
+  if (key_status.isUp() && read_val == KeyInValue::DOWN){
+    KeySym key_sym = SYMBOL_TABLE[keyboard_state.layer()][row][col];
+    DEBUGV(keyboard_state.layer());
+    if (key_status.up2down(key_sym, time_now, keyboard_state))
+      return true;
+  }
+  else if (key_status.isDown() && read_val == KeyInValue::UP){
+    if (key_status.down2up(time_now, keyboard_state))
+      return true;
+  }
+
+  return false;
+}
 
 void setup()
 {
@@ -291,6 +319,7 @@ void loop()
   if (digitalRead(ENABLE_PIN))
     return;
 
+  // Keys on the circuit local to the mcu
   bool notify_key_change = false;
   for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
     int out_pin = OUT_PINS[out_i];
@@ -302,28 +331,10 @@ void loop()
     for (size_t in_i = 0; in_i < dim(IN_PINS); in_i++){
       int in_pin = IN_PINS[in_i];
       int in_val = digitalRead(in_pin);
-      KeyStatus &key_status = status_table[in_i][out_i];
       KeyInValue read_val = static_cast<KeyInValue>(in_val);
-
-      if (key_status.no_change(read_val))
-        continue;
-
-      unsigned long time_now = millis();
-      if ( (time_now - key_status.last_change) < DEBOUNCE_MS )
-        continue;
-
-      if (key_status.isUp() && read_val == KeyInValue::DOWN){
-        KeySym key_sym = SYMBOL_TABLE[keyboard_state.layer()][in_i][out_i];
-        DEBUGV(keyboard_state.layer());
-        if (key_status.up2down(key_sym, time_now, keyboard_state))
-          notify_key_change = true;
-      }
-      else if (key_status.isDown() && read_val == KeyInValue::UP){
-        if (key_status.down2up(time_now, keyboard_state))
-          notify_key_change = true;
-      }
+      notify_key_change = update_key(in_i, out_i, SYMBOL_TABLE, status_table, read_val);
+      delay(100);  // Delay so as not to spam the computer
     }
-    delay(100);  // Delay so as not to spam the computer
   }
 
   if (notify_key_change){
