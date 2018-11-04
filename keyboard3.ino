@@ -15,6 +15,7 @@
 */
 
 #include <HID.h>
+#include <Wire.h>
 #include <Keyboard.h>
 #include "key_codes.h"
 
@@ -190,8 +191,6 @@ void sendKey(byte key, byte modifiers = 0);
 // Create an empty KeyReport
 KeyReport report = {0};
 
-// enable pin for main loop, active low.
-const int ENABLE_PIN = 9;
 // Currently in pins correspond to rows
 const int IN_PINS[] {4, 5};
 // Currently out pins correspond to columns
@@ -202,6 +201,7 @@ const uint8_t KEY_REPORT_DONT_CLEAR_KEY = 255;
 
 KeyboardState keyboard_state;
 KeyStatus status_table[dim(IN_PINS)][dim(OUT_PINS)];
+KeyStatus status_table1[dim(IN_PINS)][dim(OUT_PINS)];
 //NOTE: for keymaps with duplicate keys, duplicate key reports may be sent.
 #define EMPTY_ROW { {{KeyState::UP, 0}, {KeyState::UP, 0}}, {{KeyState::UP, 0}, {KeyState::UP, 0}} }
 #define K_UP KeyState::UP
@@ -216,6 +216,37 @@ KeyStatus status_table[dim(IN_PINS)][dim(OUT_PINS)];
   {
    {
     {{M_DN, MOD_LSHIFT}, {F_DN, F_LO|0x01}},
+    {{K_DN, KEY_SW_C  }, {K_DN, KEY_SW_D }},
+   },
+   {
+    {{K_DN, KEY_SW_A  }, {F_DN, F_LO|0x01}},
+    {{F_DN, F_LO|0x02 }, {K_DN, KEY_SW_B }},
+   },
+   {
+    {{M_DN, MOD_LCTRL }, {F_DN, F_LO|0x01}},
+    {{F_DN, F_LO|0x02 }, {K_DN, KEY_SW_E }},
+   },
+   EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
+  };
+
+const size_t MATRIX1_N_COLS = 2;
+const size_t MATRIX1_N_ROWS = 2;
+  const KeySym SYMBOL_TABLE1[KeyboardState::N_LAYERS][MATRIX1_N_ROWS][MATRIX1_N_COLS] =
+  {
+   {
+    {{K_DN, KEY_SW_A},   {K_DN, KEY_SW_B}},
     {{K_DN, KEY_SW_C  }, {K_DN, KEY_SW_D }},
    },
    {
@@ -280,6 +311,10 @@ bool update_key(KeyInValue read_val, size_t row, size_t col,
   return false;
 }
 
+const int MCP23017_SLAVE_ADDR = 0x20;
+const int MCP23017_IODIR_ADDR_BANK0 = 0x00;
+const int MCP23017_GPIOA_ADDR_BANK0 = 0x12;
+const int MCP23017_GPPUB_ADDR_BANK0 = 0x0D;
 void setup()
 {
   keyboard_state.layer_base = 0;
@@ -300,29 +335,35 @@ void setup()
     digitalWrite(in_pin, HIGH);
   }
 
-  pinMode(ENABLE_PIN, INPUT);
-  digitalWrite(ENABLE_PIN, HIGH);
-
   for (size_t in_i = 0; in_i < dim(IN_PINS); in_i++){
     for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
       status_table[in_i][out_i] = {KeyState::UP, 0, 0};
+      status_table1[in_i][out_i] = {KeyState::UP, 0, 0};
     }
   }
 
   Serial.begin(9600);
+
+  Wire.begin();
+  //Set GPIOA to be output. GPIOB is input by default.
+  Wire.beginTransmission(MCP23017_SLAVE_ADDR);
+  Wire.write(MCP23017_IODIR_ADDR_BANK0);
+  Wire.write(0x00);
+  Wire.endTransmission();
+  delay(1);
+  //Set GPIOP to have pull-ups
+  Wire.beginTransmission(MCP23017_SLAVE_ADDR);
+  Wire.write(MCP23017_GPPUB_ADDR_BANK0);
+  Wire.write(0xFF);
+  Wire.endTransmission();
 }
 
 
 
 void loop()
 {
-
-  //  Only continue when enable pin is low
-  if (digitalRead(ENABLE_PIN))
-    return;
-
-  // Keys on the circuit local to the mcu
   bool notify_key_change = false;
+  // Keys on the circuit local to the mcu
   for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
     int out_pin = OUT_PINS[out_i];
     size_t prev_out_i = (out_i + dim(OUT_PINS) - 1 ) % dim(OUT_PINS);
@@ -334,8 +375,28 @@ void loop()
       int in_pin = IN_PINS[in_i];
       int in_val = digitalRead(in_pin);
       KeyInValue read_val = static_cast<KeyInValue>(in_val);
-      notify_key_change = update_key(read_val, in_i, out_i, SYMBOL_TABLE, status_table);
-      delay(100);  // Delay so as not to spam the computer
+      if (update_key(read_val, in_i, out_i, SYMBOL_TABLE, status_table))
+        notify_key_change = true;
+    }
+  }
+
+  for (size_t row = 0; row < MATRIX1_N_COLS; row++){
+    byte out_val = 1 << row;
+    byte in_val = 0;
+    Wire.beginTransmission(MCP23017_SLAVE_ADDR);
+    Wire.write(MCP23017_GPIOA_ADDR_BANK0);
+    Wire.write(out_val);
+    Wire.endTransmission();
+    delay(1);
+    Wire.requestFrom(MCP23017_SLAVE_ADDR, 1);
+    while(Wire.available()){
+      in_val = Wire.read();
+    }
+
+    for (size_t col = 0; col < MATRIX1_N_COLS; col++){
+      KeyInValue read_val = static_cast<KeyInValue>((in_val >> col) & 0x01);
+      if (update_key(read_val, row, col, SYMBOL_TABLE1, status_table1))
+        notify_key_change = true;
     }
   }
 
@@ -347,6 +408,7 @@ void loop()
     //Serial.println("No Change");
   }
 
+  delay(300);  // Delay so as not to spam the computer
 }
 
 void sendKey(byte key, byte modifiers)
