@@ -350,7 +350,7 @@ void setup()
   Wire.write(MCP23017_IODIR_ADDR_BANK0);
   Wire.write(0x00);
   Wire.endTransmission();
-  delay(1);
+  delayMicroseconds(1);
   //Set GPIOP to have pull-ups
   Wire.beginTransmission(MCP23017_SLAVE_ADDR);
   Wire.write(MCP23017_GPPUB_ADDR_BANK0);
@@ -363,7 +363,9 @@ void setup()
 void loop()
 {
   bool notify_key_change = false;
-  // Keys on the circuit local to the mcu
+  /*
+    Keys on the circuit local to the mcu
+   */
   for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
     int out_pin = OUT_PINS[out_i];
     size_t prev_out_i = (out_i + dim(OUT_PINS) - 1 ) % dim(OUT_PINS);
@@ -380,21 +382,24 @@ void loop()
     }
   }
 
-  for (size_t row = 0; row < MATRIX1_N_COLS; row++){
-    byte out_val = 1 << row;
+  /*
+    Keys on the circuit connected via i2c
+  */
+  for (size_t col = 0; col < MATRIX1_N_COLS; col++){
+    byte out_val = ~(1 << col);
     byte in_val = 0;
     Wire.beginTransmission(MCP23017_SLAVE_ADDR);
     Wire.write(MCP23017_GPIOA_ADDR_BANK0);
     Wire.write(out_val);
     Wire.endTransmission();
-    delay(1);
+    delayMicroseconds(1);
     Wire.requestFrom(MCP23017_SLAVE_ADDR, 1);
     while(Wire.available()){
       in_val = Wire.read();
     }
 
-    for (size_t col = 0; col < MATRIX1_N_COLS; col++){
-      KeyInValue read_val = static_cast<KeyInValue>((in_val >> col) & 0x01);
+    for (size_t row = 0; row < MATRIX1_N_COLS; row++){
+      KeyInValue read_val = static_cast<KeyInValue>((in_val >> row) & 0x01);
       if (update_key(read_val, row, col, SYMBOL_TABLE1, status_table1))
         notify_key_change = true;
     }
