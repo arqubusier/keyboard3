@@ -254,8 +254,10 @@ KeyStatus status_table[dim(IN_PINS)][dim(OUT_PINS)];
  *
  * Returns true if there was a change compared to the key's last status.
  */
-template<typename SymTableT, typename StatusTableT>
-bool update_key(size_t row, size_t col, SymTableT &SYM_TABLE, StatusTableT &stat_table, KeyInValue read_val){
+template<size_t N_LAYERS, size_t N_COLS, size_t N_ROWS>
+bool update_key(KeyInValue read_val, size_t row, size_t col,
+                const  KeySym (&SYM_TABLE) [N_LAYERS][N_ROWS][N_COLS],
+                KeyStatus(&stat_table)[N_ROWS][N_COLS]){
   KeyStatus &key_status = stat_table[row][col];
   if (key_status.no_change(read_val))
     return false;
@@ -265,7 +267,7 @@ bool update_key(size_t row, size_t col, SymTableT &SYM_TABLE, StatusTableT &stat
     return false;
 
   if (key_status.isUp() && read_val == KeyInValue::DOWN){
-    KeySym key_sym = SYMBOL_TABLE[keyboard_state.layer()][row][col];
+    KeySym key_sym = SYM_TABLE[keyboard_state.layer()][row][col];
     DEBUGV(keyboard_state.layer());
     if (key_status.up2down(key_sym, time_now, keyboard_state))
       return true;
@@ -332,7 +334,7 @@ void loop()
       int in_pin = IN_PINS[in_i];
       int in_val = digitalRead(in_pin);
       KeyInValue read_val = static_cast<KeyInValue>(in_val);
-      notify_key_change = update_key(in_i, out_i, SYMBOL_TABLE, status_table, read_val);
+      notify_key_change = update_key(read_val, in_i, out_i, SYMBOL_TABLE, status_table);
       delay(100);  // Delay so as not to spam the computer
     }
   }
@@ -350,13 +352,13 @@ void loop()
 void sendKey(byte key, byte modifiers)
 {
   KeyReport report = {0};  // Create an empty KeyReport
-  
+
   /* First send a report with the keys and modifiers pressed */
   report.keys[0] = key;  // set the KeyReport to key
   report.modifiers = modifiers;  // set the KeyReport's modifiers
   report.reserved = 1;
   Keyboard.sendReport(&report);  // send the KeyReport
-  
+
   /* Now we've got to send a report with nothing pressed */
   for (int i=0; i<6; i++)
     report.keys[i] = 0;  // clear out the keys
