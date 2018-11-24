@@ -52,9 +52,9 @@ for lineno, line in enumerate(open(layoutcfg)):
             if tok.startswith("SW_"):
                 elem += "KeyState::KEY_DOWN, {:11}".format("KEY_" + tok)
             elif tok.startswith("FN_L"):
-                elem += "KeyState::MOD_DOWN, {:11}".format("FN_LOFFS|" + tok[4:])
+                elem += "KeyState::MOD_DOWN, {:11}".format("FUN_LOFFS|" + tok[4:])
             elif tok.startswith("FN_B"):
-                elem += "KeyState::MOD_DOWN, {:11}".format("FN_LBASE|" + tok[4:])
+                elem += "KeyState::MOD_DOWN, {:11}".format("FUN_LBASE|" + tok[4:])
             elif tok in MODIFIERS:
                 elem += "KeyState::MOD_DOWN, {:11}".format("MOD_" + tok)
             else:
@@ -64,16 +64,16 @@ for lineno, line in enumerate(open(layoutcfg)):
         lineout += elem
     lineout += "},"
     outf.write(lineout)
+outf.write("\n}")
 
 # Fill out remaining layers with empty rows
 for _ in range(LAYER_MAX - layer - 1):
-    outf.write("\n{")
+    outf.write("\n,{")
     for _ in range(n_rows):
         outf.write("\n  {")
         for _ in range(n_cols):
             outf.write("{KeyState::UP,0}, ")
         outf.write("},")
-    outf.write("\n},")
+    outf.write("\n}")
 
-outf.write("\n}")
 outf.write("\n")

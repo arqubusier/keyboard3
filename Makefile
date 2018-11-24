@@ -9,5 +9,8 @@ ARDUINO_DIR      = /home/herman/arduino-1.8.7
 
 include $(ARDMK_DIR)/Arduino.mk
 
+%.h: %.layout layoutgen.py
+	./layoutgen.py $< $@
+keyboard3.ino: left.h right.h
 upload2:
 	avrdude -p atmega32u4 -P /dev/ttyACM0 -c avr109 -U flash:w:build-$(BOARD_TAG)/$(TARGET).hex

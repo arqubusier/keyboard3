@@ -192,9 +192,9 @@ void sendKey(byte key, byte modifiers = 0);
 KeyReport report = {0};
 
 // Currently in pins correspond to rows
-const int IN_PINS[] {4, 5};
+const int IN_PINS[] {4, 5, 6, 7};
 // Currently out pins correspond to columns
-const int OUT_PINS[]  {10, 16};
+const int OUT_PINS[]  {10, 16, 14, 15, 18, 19};
 
 const unsigned long DEBOUNCE_MS = 5;
 const uint8_t KEY_REPORT_DONT_CLEAR_KEY = 255;
@@ -203,82 +203,17 @@ KeyboardState keyboard_state;
 KeyStatus status_table[dim(IN_PINS)][dim(OUT_PINS)];
 KeyStatus status_table1[dim(IN_PINS)][dim(OUT_PINS)];
 //NOTE: for keymaps with duplicate keys, duplicate key reports may be sent.
-#define EMPTY_ROW { {{KeyState::UP, 0}, {KeyState::UP, 0}}, {{KeyState::UP, 0}, {KeyState::UP, 0}} }
-#define K_UP KeyState::UP
-#define K_DN KeyState::KEY_DOWN
-#define M_DN KeyState::MOD_DOWN
-#define F_DN KeyState::FUN_DOWN
-#define F_LO FUN_LOFFS
-#define F_LB FUN_LBASE
-#define F_MO FUN_MACRO
-#define F_OT FUN_OTHER
   const KeySym SYMBOL_TABLE[KeyboardState::N_LAYERS][dim(IN_PINS)][dim(OUT_PINS)] =
-  {
-   {
-    {{M_DN, MOD_LSHIFT}, {F_DN, F_LO|0x01}},
-    {{K_DN, KEY_SW_C  }, {K_DN, KEY_SW_D }},
-   },
-   {
-    {{K_DN, KEY_SW_A  }, {F_DN, F_LO|0x01}},
-    {{F_DN, F_LO|0x02 }, {K_DN, KEY_SW_B }},
-   },
-   {
-    {{M_DN, MOD_LCTRL }, {F_DN, F_LO|0x01}},
-    {{F_DN, F_LO|0x02 }, {K_DN, KEY_SW_E }},
-   },
-   EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-  };
+    {
+#include "left.h"
+    };
 
-const size_t MATRIX1_N_COLS = 2;
-const size_t MATRIX1_N_ROWS = 2;
+const size_t MATRIX1_N_COLS = dim(OUT_PINS);
+const size_t MATRIX1_N_ROWS = dim(IN_PINS);
   const KeySym SYMBOL_TABLE1[KeyboardState::N_LAYERS][MATRIX1_N_ROWS][MATRIX1_N_COLS] =
-  {
-   {
-    {{K_DN, KEY_SW_A},   {K_DN, KEY_SW_B}},
-    {{K_DN, KEY_SW_C  }, {K_DN, KEY_SW_D }},
-   },
-   {
-    {{K_DN, KEY_SW_A  }, {F_DN, F_LO|0x01}},
-    {{F_DN, F_LO|0x02 }, {K_DN, KEY_SW_B }},
-   },
-   {
-    {{M_DN, MOD_LCTRL }, {F_DN, F_LO|0x01}},
-    {{F_DN, F_LO|0x02 }, {K_DN, KEY_SW_E }},
-   },
-   EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-   EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW, EMPTY_ROW,
-  };
-#undef K_UP
-#undef K_DN
-#undef M_DN
-#undef F_DN
-#undef F_LO
-#undef F_LB
-#undef F_MO
-#undef F_OT
+    {
+#include "right.h"
+    };
 
 /**
  * Check if key is pressed or relasead, and update its status accordingly.

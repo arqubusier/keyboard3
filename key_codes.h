@@ -47,7 +47,7 @@
 #define KEY_SW_AE    0x34  //00  0 52  ä 228 FALSE 00E4
 #define KEY_SW_PARAG 0x35  //00  0 53  § 167 FALSE 00A7
 #define KEY_SW_COMMA 0x36  //00  0 54  , 44  FALSE 002C
-#define KEY_SW_PUNCT 0x37  //00  0 55  . 46  FALSE 002E
+#define KEY_SW_PUNCT 0x37  //00  0 55  . 4
 #define KEY_SW_HYPH  0x38  //00  0 56  - 45  FALSE 002D
 #define KEY_SW_LESST 0x64  //00  0 100 < 60  FALSE 003C
 //04  //02  2 4 A 65  FALSE 0041
@@ -121,12 +121,16 @@
 #define KEY_SW_ENTER  0x58 //0x58 Keypad ENTER
 #define KEY_SW_BACKSPACE 0x2A //0x2A  Keyboard DELETE (Backspace)
 #define KEY_SW_ESC 0x29  //Keyboard ESCAPE
+#define KEY_SW_SYSRQ 0x46 //Print SCREEN
+#define KEY_SW_SCROLLLOCK 0x47 // Keyboard Scroll Lock
+#define KEY_SW_PAUSE 0x48 // Keyboard Pause
+#define KEY_SW_INSERT 0x49 // Keyboard Insert
 
 #define  KEY_SW_PGUP 0x4B  //Keyboard PageUp
 #define  KEY_SW_DELETE 0x4C  //Keyboard Delete Forward
 #define  KEY_SW_END 0x4D  //Keyboard End
 #define  KEY_SW_PGDOWN 0x4E  //Keyboard PageDown
-#define KEY_SW_HOME 0x4A  //Keyboard Home
+#define  KEY_SW_HOME 0x4A  //Keyboard Home
 
 
 #define KEY_SW_F1  0x3A  //Keyboard F1
