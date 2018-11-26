@@ -47,7 +47,7 @@ const uint8_t FUN_MACRO=0x80;
 const uint8_t FUN_OTHER=0xC0;
 
 struct KeyboardState{
-  static const size_t N_LAYERS = 64;
+  static const size_t N_LAYERS = 10;
   uint8_t layer_base;
   uint8_t layer_offset;
   KeyReport report;
@@ -347,7 +347,6 @@ void loop()
   else{
     //Serial.println("No Change");
   }
-
   delay(300);  // Delay so as not to spam the computer
 }
 

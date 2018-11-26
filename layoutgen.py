@@ -3,15 +3,15 @@
 import sys
 
 if len(sys.argv) != 3:
-    print("Usage: layoutgen.py LAYOUTCFG HEADEROUT")
+    print("Usage: layoutgen.py N_LAYERS LAYOUTCFG HEADEROUT")
 
-layoutcfg = sys.argv[1];
-headerout = sys.argv[2];
+layer_max = int(sys.argv[1]);
+layoutcfg = sys.argv[2];
+headerout = sys.argv[3];
 outf = open(headerout, mode="w")
 
 MODIFIERS = ("LSHIFT", "RSHIFT", "LCTRL", "RCTRL", "LGUI", "RGUI", "LALT", "RALT")
 
-LAYER_MAX = 64
 layer = 0
 n_cols = 0
 n_rows = 0
@@ -24,7 +24,7 @@ for lineno, line in enumerate(open(layoutcfg)):
         continue
     elif len(l) > 2 and l.startswith("|-"):
         layer += 1
-        if (layer > LAYER_MAX - 1):
+        if (layer > layer_max - 1):
             print("Error: too many layers")
         n_rows = 0
         outf.write("\n},")
@@ -67,7 +67,7 @@ for lineno, line in enumerate(open(layoutcfg)):
 outf.write("\n}")
 
 # Fill out remaining layers with empty rows
-for _ in range(LAYER_MAX - layer - 1):
+for _ in range(layer_max - layer - 1):
     outf.write("\n,{")
     for _ in range(n_rows):
         outf.write("\n  {")
