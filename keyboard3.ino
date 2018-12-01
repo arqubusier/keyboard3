@@ -99,7 +99,6 @@ struct KeyStatus{
     switch (FUN_PREFIX_MASK & fun_val){
     case FUN_LOFFS:
       keyboard.layer_offset = fun_content;
-      Serial.println("LayerOffset Down");
       break;
     case FUN_LBASE:
       break;
@@ -118,7 +117,6 @@ struct KeyStatus{
     switch (FUN_PREFIX_MASK & reset_val){
     case FUN_LOFFS:
       keyboard.layer_offset = 0;
-      Serial.println("LayerOffset UP");
       break;
     case FUN_LBASE:
       break;
@@ -133,22 +131,22 @@ struct KeyStatus{
   }
 
   bool up2down(KeySym key_sym, unsigned long time_up, KeyboardState &keyboard){
-    Serial.println("Key UP -> DOWN");
+    //Serial.println("Key UP -> DOWN");
     switch (key_sym.effect){
     case KeyState::KEY_DOWN:
       key_down(key_sym, keyboard.report);
-      DEBUGV(reset_val);
-      DEBUGV(key_sym.val);
+      //DEBUGV(reset_val);
+      //DEBUGV(key_sym.val);
       break;
     case KeyState::MOD_DOWN:
       keyboard.report.modifiers |= key_sym.val;
       reset_val = key_sym.val;
       state = key_sym.effect;
-      DEBUGV(keyboard.report.modifiers);
+      //DEBUGV(keyboard.report.modifiers);
       break;
     case KeyState::FUN_DOWN:
       fun_down(key_sym.val, keyboard);
-      DEBUGV(keyboard.layer_offset);
+      //DEBUGV(keyboard.layer_offset);
       break;
     default:
       this->state = KeyState::UP;
@@ -163,22 +161,22 @@ struct KeyStatus{
   }
 
   bool down2up(unsigned long time_down, KeyboardState &keyboard){
-    Serial.println("Key DOWN -> UP");
+    //Serial.println("Key DOWN -> UP");
     uint8_t clear_index;
     switch (state){
     case KeyState::KEY_DOWN:
       clear_index = reset_val;
       // assert( clear_key_i < dim(report.keys))
       keyboard.report.keys[clear_index] = KEY_REPORT_KEY_AVAILABLE;
-      DEBUGV(reset_val);
+      //DEBUGV(reset_val);
       break;
     case KeyState::MOD_DOWN:
       keyboard.report.modifiers &= ~(reset_val);
-      DEBUGV(keyboard.report.modifiers);
+      //DEBUGV(keyboard.report.modifiers);
       break;
     case KeyState::FUN_DOWN:
       fun_up(keyboard);
-      DEBUGV(keyboard.layer_offset);
+      //DEBUGV(keyboard.layer_offset);
     default:
       ;
     }
@@ -238,7 +236,7 @@ bool update_key(KeyInValue read_val, size_t row, size_t col,
 
   if (key_status.isUp() && read_val == KeyInValue::DOWN){
     KeySym key_sym = SYM_TABLE[keyboard_state.layer()][row][col];
-    DEBUGV(keyboard_state.layer());
+    //DEBUGV(keyboard_state.layer());
     if (key_status.up2down(key_sym, time_now, keyboard_state))
       return true;
   }
@@ -280,7 +278,7 @@ void setup()
     }
   }
 
-  Serial.begin(9600);
+  //Serial.begin(9600);
 
   Wire.begin();
   //Set GPIOA to be output. GPIOB is input by default.
@@ -362,10 +360,10 @@ void loop()
   }
   */
 
-  delay(300);
   if (notify_key_change){
-    Serial.println("Send Key Report");
+    //Serial.println("Send Key Report");
     // Send key report
+    Keyboard.sendReport(&keyboard_state.report);  // send the KeyReport
   }
   else{
     //Serial.println("No Change");
