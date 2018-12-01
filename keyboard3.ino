@@ -14,12 +14,18 @@
    keep this license on there.
 */
 
+#define DEBUG
+
 #include <HID.h>
 #include <Wire.h>
 #include <Keyboard.h>
 #include "key_codes.h"
 
+#ifdef DEBUG
 #define DEBUGV(var) Serial.print(#var); Serial.print(var); Serial.println("")
+#else
+#define DEBUGV(var)
+#endif
 
 /** Get the size of a fixed size array in compile-time */
 template <typename T, size_t N>
@@ -131,22 +137,24 @@ struct KeyStatus{
   }
 
   bool up2down(KeySym key_sym, unsigned long time_up, KeyboardState &keyboard){
-    //Serial.println("Key UP -> DOWN");
+    #ifdef DEBUG
+    Serial.println("Key UP -> DOWN");
+    #endif
     switch (key_sym.effect){
     case KeyState::KEY_DOWN:
       key_down(key_sym, keyboard.report);
-      //DEBUGV(reset_val);
-      //DEBUGV(key_sym.val);
+      DEBUGV(reset_val);
+      DEBUGV(key_sym.val);
       break;
     case KeyState::MOD_DOWN:
       keyboard.report.modifiers |= key_sym.val;
       reset_val = key_sym.val;
       state = key_sym.effect;
-      //DEBUGV(keyboard.report.modifiers);
+      DEBUGV(keyboard.report.modifiers);
       break;
     case KeyState::FUN_DOWN:
       fun_down(key_sym.val, keyboard);
-      //DEBUGV(keyboard.layer_offset);
+      DEBUGV(keyboard.layer_offset);
       break;
     default:
       this->state = KeyState::UP;
@@ -161,22 +169,24 @@ struct KeyStatus{
   }
 
   bool down2up(unsigned long time_down, KeyboardState &keyboard){
-    //Serial.println("Key DOWN -> UP");
+    #ifdef DEBUG
+    Serial.println("Key DOWN -> UP");
+    #endif
     uint8_t clear_index;
     switch (state){
     case KeyState::KEY_DOWN:
       clear_index = reset_val;
       // assert( clear_key_i < dim(report.keys))
       keyboard.report.keys[clear_index] = KEY_REPORT_KEY_AVAILABLE;
-      //DEBUGV(reset_val);
+      DEBUGV(reset_val);
       break;
     case KeyState::MOD_DOWN:
       keyboard.report.modifiers &= ~(reset_val);
-      //DEBUGV(keyboard.report.modifiers);
+      DEBUGV(keyboard.report.modifiers);
       break;
     case KeyState::FUN_DOWN:
       fun_up(keyboard);
-      //DEBUGV(keyboard.layer_offset);
+      DEBUGV(keyboard.layer_offset);
     default:
       ;
     }
@@ -210,8 +220,10 @@ KeyStatus status_table1[dim(IN_PINS)][dim(OUT_PINS)];
 #include "left.hpp"
     };
 
-const size_t MATRIX1_N_COLS = dim(OUT_PINS);
-const size_t MATRIX1_N_ROWS = dim(IN_PINS);
+const size_t MATRIX1_N_OUTS = dim(OUT_PINS);
+const size_t MATRIX1_N_INS = dim(IN_PINS);
+const size_t MATRIX1_N_COLS = MATRIX1_N_OUTS;
+const size_t MATRIX1_N_ROWS = MATRIX1_N_INS;
   const KeySym SYMBOL_TABLE1[KeyboardState::N_LAYERS][MATRIX1_N_ROWS][MATRIX1_N_COLS] =
     {
 #include "right.hpp"
@@ -225,7 +237,8 @@ const size_t MATRIX1_N_ROWS = dim(IN_PINS);
 template<size_t N_LAYERS, size_t N_COLS, size_t N_ROWS>
 bool update_key(KeyInValue read_val, size_t row, size_t col,
                 const  KeySym (&SYM_TABLE) [N_LAYERS][N_ROWS][N_COLS],
-                KeyStatus(&stat_table)[N_ROWS][N_COLS]){
+                KeyStatus(&stat_table)[N_ROWS][N_COLS],
+                KeyboardState &keyboard_state){
   KeyStatus &key_status = stat_table[row][col];
   if (key_status.no_change(read_val))
     return false;
@@ -234,9 +247,12 @@ bool update_key(KeyInValue read_val, size_t row, size_t col,
   if ( (time_now - key_status.last_change) < DEBOUNCE_MS )
     return false;
 
+  DEBUGV(row);
+  DEBUGV(col);
+
   if (key_status.isUp() && read_val == KeyInValue::DOWN){
     KeySym key_sym = SYM_TABLE[keyboard_state.layer()][row][col];
-    //DEBUGV(keyboard_state.layer());
+    DEBUGV(keyboard_state.layer());
     if (key_status.up2down(key_sym, time_now, keyboard_state))
       return true;
   }
@@ -278,7 +294,9 @@ void setup()
     }
   }
 
-  //Serial.begin(9600);
+#ifdef DEBUG
+  Serial.begin(9600);
+#endif
 
   Wire.begin();
   //Set GPIOA to be output. GPIOB is input by default.
@@ -287,10 +305,10 @@ void setup()
   Wire.write(0x00);
   Wire.endTransmission();
   delayMicroseconds(1);
-  //Set GPIOP to have pull-ups
+  //Set GPIOB to disable pull-ups
   Wire.beginTransmission(MCP23017_SLAVE_ADDR);
   Wire.write(MCP23017_GPPUB_ADDR_BANK0);
-  Wire.write(0xFF);
+  Wire.write(0x00);
   Wire.endTransmission();
 }
 
@@ -298,7 +316,6 @@ void setup()
 
 void loop()
 {
-  //#define DEBUG
   bool notify_key_change = false;
   /*
     Keys on the circuit local to the mcu
@@ -319,7 +336,7 @@ void loop()
       int in_pin = IN_PINS[in_i];
       int in_val = digitalRead(in_pin);
       KeyInValue read_val = static_cast<KeyInValue>(in_val);
-      if (update_key(read_val, in_i, out_i, SYMBOL_TABLE, status_table))
+      if (update_key(read_val, in_i, out_i, SYMBOL_TABLE, status_table, keyboard_state))
         notify_key_change = true;
     }
 #ifdef DEBUG
@@ -338,9 +355,8 @@ void loop()
   /*
     Keys on the circuit connected via i2c
   */
-  /*
-  for (size_t col = 0; col < MATRIX1_N_COLS; col++){
-    byte out_val = ~(1 << col);
+  for (size_t col = 0; col < MATRIX1_N_OUTS; col++){
+    byte out_val = 1 << col;
     byte in_val = 0;
     Wire.beginTransmission(MCP23017_SLAVE_ADDR);
     Wire.write(MCP23017_GPIOA_ADDR_BANK0);
@@ -352,21 +368,19 @@ void loop()
       in_val = Wire.read();
     }
 
-    for (size_t row = 0; row < MATRIX1_N_COLS; row++){
+    for (size_t row = 0; row < MATRIX1_N_INS; row++){
       KeyInValue read_val = static_cast<KeyInValue>((in_val >> row) & 0x01);
-      if (update_key(read_val, row, col, SYMBOL_TABLE1, status_table1))
+      if (update_key(read_val, row, col, SYMBOL_TABLE1, status_table1, keyboard_state))
         notify_key_change = true;
     }
   }
-  */
 
   if (notify_key_change){
-    //Serial.println("Send Key Report");
-    // Send key report
+#ifdef DEBUG
+    Serial.println("Send Key Report");
+#else
     Keyboard.sendReport(&keyboard_state.report);  // send the KeyReport
-  }
-  else{
-    //Serial.println("No Change");
+#endif
   }
 
 }
