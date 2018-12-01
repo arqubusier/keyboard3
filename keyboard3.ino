@@ -36,7 +36,11 @@ void print_array(T(& arr)[N])
 }
 
 const uint8_t KEY_REPORT_KEY_AVAILABLE = 0;
-enum struct KeyInValue {UP=HIGH, DOWN=LOW};
+const int ACTIVE_COLUMN = HIGH;
+const int DISABLED_COLUMN = LOW;
+// inputs with high impedance, external pull-downs are used.
+const int IN_MODE = INPUT;
+enum struct KeyInValue {UP=DISABLED_COLUMN, DOWN=ACTIVE_COLUMN};
 enum struct KeyState {KEY_DOWN, MOD_DOWN, FUN_DOWN, UP};
 
 const uint8_t FUN_PREFIX_MASK = 0xC0;
@@ -47,7 +51,7 @@ const uint8_t FUN_MACRO=0x80;
 const uint8_t FUN_OTHER=0xC0;
 
 struct KeyboardState{
-  static const size_t N_LAYERS = 10;
+  static const size_t N_LAYERS = 3;
   uint8_t layer_base;
   uint8_t layer_offset;
   KeyReport report;
@@ -205,14 +209,14 @@ KeyStatus status_table1[dim(IN_PINS)][dim(OUT_PINS)];
 //NOTE: for keymaps with duplicate keys, duplicate key reports may be sent.
   const KeySym SYMBOL_TABLE[KeyboardState::N_LAYERS][dim(IN_PINS)][dim(OUT_PINS)] =
     {
-#include "left.h"
+#include "left.hpp"
     };
 
 const size_t MATRIX1_N_COLS = dim(OUT_PINS);
 const size_t MATRIX1_N_ROWS = dim(IN_PINS);
   const KeySym SYMBOL_TABLE1[KeyboardState::N_LAYERS][MATRIX1_N_ROWS][MATRIX1_N_COLS] =
     {
-#include "right.h"
+#include "right.hpp"
     };
 
 /**
@@ -261,13 +265,12 @@ void setup()
   for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
     int out_pin = OUT_PINS[out_i];
     pinMode(out_pin, OUTPUT);
-    digitalWrite(out_pin, HIGH);
+    digitalWrite(out_pin, DISABLED_COLUMN);
   }
 
   for (size_t in_i = 0; in_i < dim(IN_PINS); in_i++){
     int in_pin = IN_PINS[in_i];
-    pinMode(in_pin, INPUT);
-    digitalWrite(in_pin, HIGH);
+    pinMode(in_pin, IN_MODE);
   }
 
   for (size_t in_i = 0; in_i < dim(IN_PINS); in_i++){
@@ -297,16 +300,22 @@ void setup()
 
 void loop()
 {
+  //#define DEBUG
   bool notify_key_change = false;
   /*
     Keys on the circuit local to the mcu
    */
   for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
+#ifdef DEBUG
+    Serial.print("------------ SCAN COL ");
+    Serial.print(out_i);
+    Serial.println("------------");
+#endif
     int out_pin = OUT_PINS[out_i];
     size_t prev_out_i = (out_i + dim(OUT_PINS) - 1 ) % dim(OUT_PINS);
     int prev_out_pin = OUT_PINS[prev_out_i];
-    digitalWrite(prev_out_pin, HIGH);
-    digitalWrite(out_pin, LOW);
+    digitalWrite(prev_out_pin, DISABLED_COLUMN);
+    digitalWrite(out_pin, ACTIVE_COLUMN);
 
     for (size_t in_i = 0; in_i < dim(IN_PINS); in_i++){
       int in_pin = IN_PINS[in_i];
@@ -315,11 +324,23 @@ void loop()
       if (update_key(read_val, in_i, out_i, SYMBOL_TABLE, status_table))
         notify_key_change = true;
     }
+#ifdef DEBUG
+    Serial.println("------------ SCAN DONE --------------");
+    DEBUGV(out_i);
+    DEBUGV(out_pin);
+    DEBUGV(prev_out_pin);
+    //wait for the user to send something before continuing
+    while (Serial.available() == 0){
+      ;
+    }
+    Serial.read();
+#endif
   }
 
   /*
     Keys on the circuit connected via i2c
   */
+  /*
   for (size_t col = 0; col < MATRIX1_N_COLS; col++){
     byte out_val = ~(1 << col);
     byte in_val = 0;
@@ -339,7 +360,9 @@ void loop()
         notify_key_change = true;
     }
   }
+  */
 
+  delay(300);
   if (notify_key_change){
     Serial.println("Send Key Report");
     // Send key report
@@ -347,7 +370,7 @@ void loop()
   else{
     //Serial.println("No Change");
   }
-  delay(300);  // Delay so as not to spam the computer
+
 }
 
 void sendKey(byte key, byte modifiers)
