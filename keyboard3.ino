@@ -14,7 +14,7 @@
    keep this license on there.
 */
 
-#define DEBUG
+//#define DEBUG
 
 #include <HID.h>
 #include <Wire.h>
@@ -322,7 +322,7 @@ void loop()
    */
   for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
 #ifdef DEBUG
-    Serial.print("------------ SCAN COL ");
+    Serial.print("------------ SCAN 0 COL ");
     Serial.print(out_i);
     Serial.println("------------");
 #endif
@@ -340,7 +340,7 @@ void loop()
         notify_key_change = true;
     }
 #ifdef DEBUG
-    Serial.println("------------ SCAN DONE --------------");
+    Serial.println("------------ SCAN 0 DONE --------------");
     DEBUGV(out_i);
     DEBUGV(out_pin);
     DEBUGV(prev_out_pin);
@@ -355,24 +355,39 @@ void loop()
   /*
     Keys on the circuit connected via i2c
   */
-  for (size_t col = 0; col < MATRIX1_N_OUTS; col++){
-    byte out_val = 1 << col;
+  for (size_t out_i = 0; out_i < MATRIX1_N_OUTS; out_i++){
+#ifdef DEBUG
+    Serial.print("------------ SCAN 1 COL ");
+    Serial.print(out_i);
+    Serial.println("------------");
+#endif
+    byte out_val = 1 << out_i;
     byte in_val = 0;
     Wire.beginTransmission(MCP23017_SLAVE_ADDR);
     Wire.write(MCP23017_GPIOA_ADDR_BANK0);
     Wire.write(out_val);
     Wire.endTransmission();
-    delayMicroseconds(1);
+    delayMicroseconds(100);
     Wire.requestFrom(MCP23017_SLAVE_ADDR, 1);
     while(Wire.available()){
       in_val = Wire.read();
     }
 
-    for (size_t row = 0; row < MATRIX1_N_INS; row++){
-      KeyInValue read_val = static_cast<KeyInValue>((in_val >> row) & 0x01);
-      if (update_key(read_val, row, col, SYMBOL_TABLE1, status_table1, keyboard_state))
+    for (size_t in_i = 0; in_i < MATRIX1_N_INS; in_i++){
+      KeyInValue read_val = static_cast<KeyInValue>((in_val >> in_i) & 0x01);
+      if (update_key(read_val, in_i, out_i, SYMBOL_TABLE1, status_table1, keyboard_state))
         notify_key_change = true;
     }
+#ifdef DEBUG
+    Serial.println("------------ SCAN 1 DONE --------------");
+    DEBUGV(out_i);
+    DEBUGV(in_val);
+    //wait for the user to send something before continuing
+    while (Serial.available() == 0){
+      ;
+    }
+    Serial.read();
+#endif
   }
 
   if (notify_key_change){
