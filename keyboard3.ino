@@ -42,10 +42,10 @@ void print_array(T(& arr)[N])
 }
 
 const uint8_t KEY_REPORT_KEY_AVAILABLE = 0;
-const int ACTIVE_COLUMN = HIGH;
-const int DISABLED_COLUMN = LOW;
+const int ACTIVE_COLUMN = LOW;
+const int DISABLED_COLUMN = HIGH;
 // inputs with high impedance, external pull-downs are used.
-const int IN_MODE = INPUT;
+const int IN_MODE = INPUT_PULLUP;
 enum struct KeyInValue {UP=DISABLED_COLUMN, DOWN=ACTIVE_COLUMN};
 enum struct KeyState {KEY_DOWN, MOD_DOWN, FUN_DOWN, UP};
 
@@ -203,25 +203,25 @@ void sendKey(byte key, byte modifiers = 0);
 // Create an empty KeyReport
 KeyReport report = {0};
 
-// Currently in pins correspond to rows
-const int IN_PINS[] {4, 5, 6, 7};
-// Currently out pins correspond to columns
-const int OUT_PINS[]  {10, 16, 14, 15, 18, 19};
+// Currently out pins correspond to rows
+const int OUT_PINS[] {4, 5, 6, 7};
+// Currently in pins correspond to columns
+const int IN_PINS[]  {10, 16, 14, 15, 18, 19};
 
 const unsigned long DEBOUNCE_MS = 5;
 const uint8_t KEY_REPORT_DONT_CLEAR_KEY = 255;
 
 KeyboardState keyboard_state;
-KeyStatus status_table[dim(IN_PINS)][dim(OUT_PINS)];
-KeyStatus status_table1[dim(IN_PINS)][dim(OUT_PINS)];
+KeyStatus status_table[dim(OUT_PINS)][dim(IN_PINS)];
+KeyStatus status_table1[dim(OUT_PINS)][dim(IN_PINS)];
 //NOTE: for keymaps with duplicate keys, duplicate key reports may be sent.
-  const KeySym SYMBOL_TABLE[KeyboardState::N_LAYERS][dim(IN_PINS)][dim(OUT_PINS)] =
+  const KeySym SYMBOL_TABLE[KeyboardState::N_LAYERS][dim(OUT_PINS)][dim(IN_PINS)] =
     {
 #include "left.hpp"
     };
 
-const size_t MATRIX1_N_OUTS = dim(OUT_PINS);
-const size_t MATRIX1_N_INS = dim(IN_PINS);
+const size_t MATRIX1_N_OUTS = dim(IN_PINS);
+const size_t MATRIX1_N_INS = dim(OUT_PINS);
 const size_t MATRIX1_N_COLS = MATRIX1_N_OUTS;
 const size_t MATRIX1_N_ROWS = MATRIX1_N_INS;
   const KeySym SYMBOL_TABLE1[KeyboardState::N_LAYERS][MATRIX1_N_ROWS][MATRIX1_N_COLS] =
@@ -336,7 +336,7 @@ void loop()
       int in_pin = IN_PINS[in_i];
       int in_val = digitalRead(in_pin);
       KeyInValue read_val = static_cast<KeyInValue>(in_val);
-      if (update_key(read_val, in_i, out_i, SYMBOL_TABLE, status_table, keyboard_state))
+      if (update_key(read_val, out_i, in_i, SYMBOL_TABLE, status_table, keyboard_state))
         notify_key_change = true;
     }
 #ifdef DEBUG
@@ -355,6 +355,7 @@ void loop()
   /*
     Keys on the circuit connected via i2c
   */
+  /*
   for (size_t out_i = 0; out_i < MATRIX1_N_OUTS; out_i++){
 #ifdef DEBUG
     Serial.print("------------ SCAN 1 COL ");
@@ -382,13 +383,14 @@ void loop()
     Serial.println("------------ SCAN 1 DONE --------------");
     DEBUGV(out_i);
     DEBUGV(in_val);
-    //wait for the user to send something before continuing
+    wait for the user to send something before continuing
     while (Serial.available() == 0){
       ;
     }
     Serial.read();
 #endif
   }
+  */
 
   if (notify_key_change){
 #ifdef DEBUG
