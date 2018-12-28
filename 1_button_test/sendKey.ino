@@ -16,18 +16,22 @@ int buttonPin = 9;  // Set a button to digital pin 9
 
 void setup()
 {
+  /*
   pinMode(buttonPin, INPUT);  // Set the button as an input
   digitalWrite(buttonPin, HIGH);  // Pull the button high
+  */
 }
 
 void loop()
 {
+  /*
   if (digitalRead(buttonPin))  //  Only continue when enable pin is low
   {
     return;
   }
   sendKey(KEY_SW_A, 1 << MOD_LSHIFT);  // send a SHIFT+a to the computer via Keyboard HID
   delay(1000);  // Delay so as not to spam the computer
+  */
 }
 
 void sendKey(byte key, byte modifiers)
