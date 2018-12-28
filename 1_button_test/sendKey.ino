@@ -26,7 +26,7 @@ void loop()
   {
     return;
   }
-  sendKey(KEY_SW_A, 1 << MODIFIER_LSHIFT);  // send a SHIFT+a to the computer via Keyboard HID
+  sendKey(KEY_SW_A, 1 << MOD_LSHIFT);  // send a SHIFT+a to the computer via Keyboard HID
   delay(1000);  // Delay so as not to spam the computer
 }
 
