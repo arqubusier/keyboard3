@@ -6,7 +6,7 @@ Keyboard firmware for a (split) keyboard using a Sparkfun pro micro and a mcp230
 
 * Arduino (avr-gcc and avrdude)
 * Sparkfun arduino add-on
-    https://github.com/sparkfun/SF32u4_boards/archive/master.zip
+    https://github.com/sparkfun/Arduino_Boards
 * The makefile includes files from:
     https://github.com/sudar/Arduino-Makefile
 
