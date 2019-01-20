@@ -250,6 +250,7 @@ bool update_key(KeyInValue read_val, size_t row, size_t col,
   DEBUGV(row);
   DEBUGV(col);
 
+
   if (key_status.isUp() && read_val == KeyInValue::DOWN){
     KeySym key_sym = SYM_TABLE[keyboard_state.layer()][row][col];
     DEBUGV(keyboard_state.layer());
@@ -310,6 +311,7 @@ void setup()
   Wire.write(MCP23017_GPPUB_ADDR_BANK0);
   Wire.write(0x00);
   Wire.endTransmission();
+  delay(30000);
 }
 
 
@@ -321,6 +323,7 @@ void loop()
   //    Keys on the circuit local to the mcu
   //
 
+  delay(30000);
   for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
 #ifdef DEBUG
     Serial.print("------------ SCAN 0 COL ");
@@ -337,10 +340,8 @@ void loop()
       int in_pin = IN_PINS[in_i];
       int in_val = digitalRead(in_pin);
       KeyInValue read_val = static_cast<KeyInValue>(in_val);
-      /*
       if (update_key(read_val, out_i, in_i, SYMBOL_TABLE, status_table, keyboard_state))
         notify_key_change = true;
-    */
     }
 #ifdef DEBUG
     Serial.println("------------ SCAN 0 DONE --------------");
@@ -358,6 +359,7 @@ void loop()
   //
   // Keys on the circuit connected via i2c
   //
+  /*
   for (size_t out_i = 0; out_i < MATRIX1_N_OUTS; out_i++){
 #ifdef DEBUG
     Serial.print("------------ SCAN 1 COL ");
@@ -378,10 +380,8 @@ void loop()
 
     for (size_t in_i = 0; in_i < MATRIX1_N_INS; in_i++){
       KeyInValue read_val = static_cast<KeyInValue>((in_val >> in_i) & 0x01);
-      /*
       if (update_key(read_val, in_i, out_i, SYMBOL_TABLE1, status_table1, keyboard_state))
         notify_key_change = true;
-      */
     }
 #ifdef DEBUG
     Serial.println("------------ SCAN 1 DONE --------------");
@@ -394,14 +394,17 @@ void loop()
     Serial.read();
 #endif
   }
+  */
 
   if (notify_key_change){
 #ifdef DEBUG
     Serial.println("Send Key Report");
+    Keyboard.sendReport(&keyboard_state.report);  // send the KeyReport
 #else
     Keyboard.sendReport(&keyboard_state.report);  // send the KeyReport
 #endif
   }
+
 
 }
 
