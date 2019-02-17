@@ -41,6 +41,7 @@ void print_array(T(& arr)[N])
   Serial.println("");
 }
 
+const int RXLED=17;
 const uint8_t KEY_REPORT_KEY_AVAILABLE = 0;
 const int ACTIVE_COLUMN = LOW;
 const int DISABLED_COLUMN = HIGH;
@@ -269,6 +270,9 @@ const int MCP23017_SLAVE_ADDR = 0x20;
 const int MCP23017_IODIR_ADDR_BANK0 = 0x00;
 const int MCP23017_GPIOA_ADDR_BANK0 = 0x12;
 const int MCP23017_GPPUB_ADDR_BANK0 = 0x0D;
+
+int counter = 0;
+int debug_led_state;
 void setup()
 {
   keyboard_state.layer_base = 0;
@@ -290,14 +294,14 @@ void setup()
 
   for (size_t in_i = 0; in_i < dim(IN_PINS); in_i++){
     for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
-      status_table[in_i][out_i] = {KeyState::UP, 0, 0};
-      status_table1[in_i][out_i] = {KeyState::UP, 0, 0};
+      status_table[out_i][in_i] = {KeyState::UP, 0, 0};
+      status_table1[out_i][in_i] = {KeyState::UP, 0, 0};
     }
   }
 
-#ifdef DEBUG
   Serial.begin(9600);
-#endif
+  //RXLED is used for debugging purposes.
+  pinMode(RXLED, OUTPUT);
 
   Wire.begin();
   //Set GPIOA to be output. GPIOB is input by default.
@@ -311,19 +315,25 @@ void setup()
   Wire.write(MCP23017_GPPUB_ADDR_BANK0);
   Wire.write(0x00);
   Wire.endTransmission();
-  delay(30000);
+
+  //debug_led_state = HIGH;
 }
 
 
 
 void loop()
 {
+  counter++;
+  if ((counter % 500) == 0){
+    debug_led_state = (debug_led_state == HIGH) ? LOW: HIGH;
+    digitalWrite(RXLED, debug_led_state);
+  }
+
   bool notify_key_change = false;
   //
   //    Keys on the circuit local to the mcu
   //
 
-  delay(30000);
   for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
 #ifdef DEBUG
     Serial.print("------------ SCAN 0 COL ");
@@ -397,9 +407,9 @@ void loop()
   */
 
   if (notify_key_change){
+    Serial.println("Send Key Report");
 #ifdef DEBUG
     Serial.println("Send Key Report");
-    Keyboard.sendReport(&keyboard_state.report);  // send the KeyReport
 #else
     Keyboard.sendReport(&keyboard_state.report);  // send the KeyReport
 #endif
