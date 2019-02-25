@@ -306,12 +306,13 @@ void setup()
   pinMode(RXLED, OUTPUT);
 
   Wire.begin();
-  //Set GPIOB to be input. GPIOA is output by default.
+  //Set GPIOA to be output (register bitval 0 <=> pin == 0)
+  //GPIOB is input by default (IODIRB POR = 0xFF).
   Wire.beginTransmission(MCP23017_SLAVE_ADDR);
-  Wire.write(MCP23017_IODIRB_ADDR_BANK0);
-  Wire.write(0xFF);
+  Wire.write(MCP23017_IODIRA_ADDR_BANK0);
+  Wire.write(0x00);
   Wire.endTransmission();
-  delayMicroseconds(1);
+  delayMicroseconds(2);
   //Set GPIOA to enable pull-ups
   Wire.beginTransmission(MCP23017_SLAVE_ADDR);
   Wire.write(MCP23017_GPPUB_ADDR_BANK0);
@@ -384,7 +385,7 @@ void loop()
     Wire.write(MCP23017_GPIOA_ADDR_BANK0);
     Wire.write(out_val);
     Wire.endTransmission();
-    delayMicroseconds(500);
+    delayMicroseconds(100);
     Wire.requestFrom(MCP23017_SLAVE_ADDR, 1);
     while(Wire.available()){
       in_val = Wire.read();
