@@ -14,7 +14,7 @@
    keep this license on there.
 */
 
-#define DEBUG
+//#define DEBUG
 
 #include <HID.h>
 #include <Wire.h>
