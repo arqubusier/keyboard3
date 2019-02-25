@@ -2,8 +2,9 @@
 
 import sys
 
-if len(sys.argv) != 3:
+if len(sys.argv) != 4:
     print("Usage: layoutgen.py N_LAYERS LAYOUTCFG HEADEROUT")
+    sys.exit(1)
 
 layer_max = int(sys.argv[1]);
 layoutcfg = sys.argv[2];
@@ -52,9 +53,9 @@ for lineno, line in enumerate(open(layoutcfg)):
             if tok.startswith("SW_"):
                 elem += "KeyState::KEY_DOWN, {:11}".format("KEY_" + tok)
             elif tok.startswith("FN_L"):
-                elem += "KeyState::MOD_DOWN, {:11}".format("FUN_LOFFS|" + tok[4:])
+                elem += "KeyState::FUN_DOWN, {:11}".format("FUN_LOFFS|" + tok[4:])
             elif tok.startswith("FN_B"):
-                elem += "KeyState::MOD_DOWN, {:11}".format("FUN_LBASE|" + tok[4:])
+                elem += "KeyState::FUN_DOWN, {:11}".format("FUN_LBASE|" + tok[4:])
             elif tok in MODIFIERS:
                 elem += "KeyState::MOD_DOWN, {:11}".format("MOD_" + tok)
             else:

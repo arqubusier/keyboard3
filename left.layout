@@ -1,7 +1,7 @@
 | SW_AO    | SW_AE         | SW_OE    | SW_P      | SW_Y     | LSHIFT |
-| SW_A     | SW_O          | SW_E     | SW_U      | SW_I     | LGUI   |
+| SW_A     | SW_O          | SW_E     | SW_U      | SW_I     | LCTRL  |
 | SW_COMMA | SW_Q          | SW_J     | SW_K      | SW_X     | LALT   |
-|          | SW_BACKSPACE  | SW_TAB   | FN_L1     | SW_SPACE | LCTRL  |
+|          | SW_BACKSPACE  | SW_TAB   | FN_L1     | SW_SPACE | LGUI   |
 |----------+---------------+----------+-----------+----------+--------|
 | SW_PARAG | SW_PLUS       | SW_DDOT  |           |          | LSHIFT |
 | SW_1     | SW_2          | SW_3     | SW_4      | SW_5     | LGUI   |
@@ -9,6 +9,6 @@
 |          | SW_BACKSPACE  | SW_TAB   | FN_L1     | SW_SPACE | LCTRL  |
 |----------+---------------+----------+-----------+----------+--------|
 | SW_SYSRQ | SW_SCROLLLOCK | SW_PAUSE | SW_INSERT |          | LSHIFT |
-| SW_HOME  | SW_END        | SW_PGUP  | SW_PGDOWN |          | LGUI   |
+| SW_HOME  | SW_END        | SW_PGUP  | SW_PGDOWN |          | LCTRL  |
 |          |               |          |           |          | LALT   |
-|          | SW_BACKSPACE  | SW_TAB   | FN_L1     | SW_SPACE | LCTRL  |
+|          | SW_BACKSPACE  | SW_TAB   | FN_L1     | SW_SPACE | LGUI   |
