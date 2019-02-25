@@ -14,7 +14,7 @@
    keep this license on there.
 */
 
-//#define DEBUG
+#define DEBUG
 
 #include <HID.h>
 #include <Wire.h>
@@ -45,7 +45,6 @@ const int RXLED=17;
 const uint8_t KEY_REPORT_KEY_AVAILABLE = 0;
 const int ACTIVE_COLUMN = LOW;
 const int DISABLED_COLUMN = HIGH;
-// inputs with high impedance, external pull-downs are used.
 const int IN_MODE = INPUT_PULLUP;
 enum struct KeyInValue {UP=DISABLED_COLUMN, DOWN=ACTIVE_COLUMN};
 enum struct KeyState {KEY_DOWN, MOD_DOWN, FUN_DOWN, UP};
@@ -221,10 +220,10 @@ KeyStatus status_table1[dim(OUT_PINS)][dim(IN_PINS)];
 #include "left.hpp"
     };
 
-const size_t MATRIX1_N_OUTS = dim(IN_PINS);
-const size_t MATRIX1_N_INS = dim(OUT_PINS);
-const size_t MATRIX1_N_COLS = MATRIX1_N_OUTS;
-const size_t MATRIX1_N_ROWS = MATRIX1_N_INS;
+const size_t MATRIX1_N_OUTS = 4;
+const size_t MATRIX1_N_INS = 6;
+const size_t MATRIX1_N_COLS = MATRIX1_N_INS;
+const size_t MATRIX1_N_ROWS = MATRIX1_N_OUTS;
   const KeySym SYMBOL_TABLE1[KeyboardState::N_LAYERS][MATRIX1_N_ROWS][MATRIX1_N_COLS] =
     {
 #include "right.hpp"
@@ -267,8 +266,11 @@ bool update_key(KeyInValue read_val, size_t row, size_t col,
 }
 
 const int MCP23017_SLAVE_ADDR = 0x20;
-const int MCP23017_IODIR_ADDR_BANK0 = 0x00;
+const int MCP23017_IODIRA_ADDR_BANK0 = 0x00;
+const int MCP23017_IODIRB_ADDR_BANK0 = 0x01;
 const int MCP23017_GPIOA_ADDR_BANK0 = 0x12;
+const int MCP23017_GPIOB_ADDR_BANK0 = 0x13;
+const int MCP23017_GPPUA_ADDR_BANK0 = 0x0C;
 const int MCP23017_GPPUB_ADDR_BANK0 = 0x0D;
 
 int counter = 0;
@@ -304,19 +306,17 @@ void setup()
   pinMode(RXLED, OUTPUT);
 
   Wire.begin();
-  //Set GPIOA to be output. GPIOB is input by default.
+  //Set GPIOB to be input. GPIOA is output by default.
   Wire.beginTransmission(MCP23017_SLAVE_ADDR);
-  Wire.write(MCP23017_IODIR_ADDR_BANK0);
-  Wire.write(0x00);
+  Wire.write(MCP23017_IODIRB_ADDR_BANK0);
+  Wire.write(0xFF);
   Wire.endTransmission();
   delayMicroseconds(1);
-  //Set GPIOB to disable pull-ups
+  //Set GPIOA to enable pull-ups
   Wire.beginTransmission(MCP23017_SLAVE_ADDR);
   Wire.write(MCP23017_GPPUB_ADDR_BANK0);
-  Wire.write(0x00);
+  Wire.write(0xFF);
   Wire.endTransmission();
-
-  //debug_led_state = HIGH;
 }
 
 
@@ -336,8 +336,10 @@ void loop()
 
   for (size_t out_i = 0; out_i < dim(OUT_PINS); out_i++){
 #ifdef DEBUG
-    Serial.print("------------ SCAN 0 COL ");
+    Serial.print("------------ SCAN 0 ROW ");
     Serial.print(out_i);
+    Serial.print(" of ");
+    Serial.print(dim(OUT_PINS) - 1);
     Serial.println("------------");
 #endif
     int out_pin = OUT_PINS[out_i];
@@ -355,9 +357,6 @@ void loop()
     }
 #ifdef DEBUG
     Serial.println("------------ SCAN 0 DONE --------------");
-    DEBUGV(out_i);
-    DEBUGV(out_pin);
-    DEBUGV(prev_out_pin);
     //wait for the user to send something before continuing
     while (Serial.available() == 0){
       ;
@@ -369,34 +368,35 @@ void loop()
   //
   // Keys on the circuit connected via i2c
   //
-  /*
   for (size_t out_i = 0; out_i < MATRIX1_N_OUTS; out_i++){
+    byte out_val = ~(1 << out_i);
+    byte in_val = 0;
 #ifdef DEBUG
-    Serial.print("------------ SCAN 1 COL ");
+    Serial.print("------------ SCAN 1 ROW ");
     Serial.print(out_i);
+    Serial.print(" of ");
+    Serial.print(dim(OUT_PINS) - 1);
+    Serial.println("");
+    DEBUGV(out_val);
     Serial.println("------------");
 #endif
-    byte out_val = 1 << out_i;
-    byte in_val = 0;
     Wire.beginTransmission(MCP23017_SLAVE_ADDR);
     Wire.write(MCP23017_GPIOA_ADDR_BANK0);
     Wire.write(out_val);
     Wire.endTransmission();
-    delayMicroseconds(100);
+    delayMicroseconds(500);
     Wire.requestFrom(MCP23017_SLAVE_ADDR, 1);
     while(Wire.available()){
       in_val = Wire.read();
     }
 
     for (size_t in_i = 0; in_i < MATRIX1_N_INS; in_i++){
-      KeyInValue read_val = static_cast<KeyInValue>((in_val >> in_i) & 0x01);
-      if (update_key(read_val, in_i, out_i, SYMBOL_TABLE1, status_table1, keyboard_state))
+      KeyInValue read_val = static_cast<KeyInValue>( (in_val >> in_i) & 0x01 );
+      if (update_key(read_val, out_i, in_i, SYMBOL_TABLE1, status_table1, keyboard_state))
         notify_key_change = true;
     }
 #ifdef DEBUG
     Serial.println("------------ SCAN 1 DONE --------------");
-    DEBUGV(out_i);
-    DEBUGV(in_val);
     //wait for the user to send something before continuing
     while (Serial.available() == 0){
       ;
@@ -404,7 +404,6 @@ void loop()
     Serial.read();
 #endif
   }
-  */
 
   if (notify_key_change){
     Serial.println("Send Key Report");
