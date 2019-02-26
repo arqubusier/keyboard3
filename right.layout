@@ -1,14 +1,14 @@
 | RSHIFT | SW_F     | SW_G     | SW_C     | SW_R      | SW_L     |
 | RALT   | SW_D     | SW_H     | SW_T     | SW_N      | SW_S     |
 | RCTRL  | SW_B     | SW_M     | SW_W     | SW_V      | SW_Z     |
-| RGUI   | SW_ENTER | FN_L2    | SW_COMMA | SW_DELETE |          |
+| RGUI   | SW_SPACE | FN_L2    | SW_COMMA | SW_DELETE |          |
 |--------+----------+----------+----------+-----------+----------|
 | RSHIFT |          | SW_LESST | SW_HYPH  | SW_DDOT   | SW_PLUS  |
 | RALT   | SW_6     | SW_7     | SW_8     | SW_9      | SW_0     |
 | RCTRL  |          |          |          |           |          |
-| RGUI   | SW_ENTER | FN_L2    | SW_COMMA | SW_DELETE |          |
+| RGUI   | SW_SPACE | FN_L2    | SW_COMMA | SW_DELETE |          |
 |--------+----------+----------+----------+-----------+----------|
 | RSHIFT | SW_F8    | SW_F9    | SW_F10   | SW_F11    | SW_F12   |
 | RALT   | SW_F7    | SW_LEFT  | SW_DOWN  | SW_UP     | SW_RIGHT |
 | RCTRL  |          |          |          |           |          |
-| RGUI   | SW_ENTER | FN_L2    | SW_COMMA | SW_DELETE |          |
+| RGUI   | SW_SPACE | FN_L2    | SW_COMMA | SW_DELETE |          |

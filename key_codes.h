@@ -118,7 +118,8 @@
 #define KEY_SW_LEFT 0x50  //0x50  Keyboard LeftArrow
 #define KEY_SW_DOWN 0x51  //0x51  Keyboard DownArrow
 #define KEY_SW_UP 0x52  //0x52  Keyboard UpArrow
-#define KEY_SW_ENTER  0x58 //0x58 Keypad ENTER
+#define KEY_SW_KPENTER  0x58 //0x58 Keypad ENTER
+#define KEY_SW_ENTER  0x28 //0x58 ENTER
 #define KEY_SW_BACKSPACE 0x2A //0x2A  Keyboard DELETE (Backspace)
 #define KEY_SW_ESC 0x29  //Keyboard ESCAPE
 #define KEY_SW_SYSRQ 0x46 //Print SCREEN

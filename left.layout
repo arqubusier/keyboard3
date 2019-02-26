@@ -1,14 +1,14 @@
-| SW_AO    | SW_AE         | SW_OE        | SW_P      | SW_Y     | LSHIFT |
-| SW_A     | SW_O          | SW_E         | SW_U      | SW_I     | LCTRL  |
-| SW_PUNCT | SW_Q          | SW_J         | SW_K      | SW_X     | LALT   |
-|          | SW_BACKSPACE  | SW_TAB       | FN_L1     | SW_SPACE | LGUI   |
-|----------+---------------+--------------+-----------+----------+--------|
-| SW_PLUS  | SW_DDOT       | SW_HYPH      | SW_LESST  |          | LSHIFT |
-| SW_1     | SW_2          | SW_3         | SW_4      | SW_5     | LGUI   |
-| SW_6     | SW_7          | SW_8         | SW_9      | SW_0     | LALT   |
-|          | SW_BACKSPACE  | SW_TAB       | FN_L1     | SW_SPACE | LCTRL  |
-|----------+---------------+--------------+-----------+----------+--------|
-| SW_F1    | SW_F2         | SW_F3        | SW_F4     | SW_F5    | LSHIFT |
-| SW_HOME  | SW_END        | SW_PGUP      | SW_PGDOWN | SW_F6    | LCTRL  |
-| SW_SYSRQ | SW_SCROLLLOCK | SW_PAUSE     | SW_INSERT |          | LALT   |
-|          | SW_TAB        | SW_BACKSPACE | FN_L1     | SW_SPACE | LGUI   |
+| SW_AO    | SW_AE         | SW_OE        | SW_P      | SW_Y  | LSHIFT |
+| SW_A     | SW_O          | SW_E         | SW_U      | SW_I  | LCTRL  |
+| SW_PUNCT | SW_Q          | SW_J         | SW_K      | SW_X  | LALT   |
+|          | SW_BACKSPACE  | SW_TAB       | SW_ENTER  | FN_L1 | LGUI   |
+|----------+---------------+--------------+-----------+-------+--------|
+| SW_PLUS  | SW_DDOT       | SW_HYPH      | SW_LESST  |       | LSHIFT |
+| SW_1     | SW_2          | SW_3         | SW_4      | SW_5  | LGUI   |
+| SW_6     | SW_7          | SW_8         | SW_9      | SW_0  | LALT   |
+|          | SW_BACKSPACE  | SW_TAB       | SW_ENTER  | FN_L1 | LCTRL  |
+|----------+---------------+--------------+-----------+-------+--------|
+| SW_F1    | SW_F2         | SW_F3        | SW_F4     | SW_F5 | LSHIFT |
+| SW_HOME  | SW_END        | SW_PGUP      | SW_PGDOWN | SW_F6 | LCTRL  |
+| SW_SYSRQ | SW_SCROLLLOCK | SW_PAUSE     | SW_INSERT |       | LALT   |
+|          | SW_TAB        | SW_BACKSPACE | SW_ENTER  | FN_L1 | LGUI   |
